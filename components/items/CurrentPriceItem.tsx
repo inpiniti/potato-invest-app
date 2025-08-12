@@ -11,11 +11,21 @@ export type CurrentPriceItemProps = ViewProps & {
   suffix?: React.ReactNode; // e.g., favorite icon
 };
 
-export const CurrentPriceItem = ({ rank, name, price, change, changePositive, prefixIcon, suffix, className = '', ...rest }: CurrentPriceItemProps) => {
+export const CurrentPriceItem = ({
+  rank,
+  name,
+  price,
+  change,
+  changePositive,
+  prefixIcon,
+  suffix,
+  className = '',
+  ...rest
+}: CurrentPriceItemProps) => {
   return (
-    <View className={`flex-row items-center justify-between ${className}`} {...rest}>
+    <View className={`flex-row items-center justify-between p-2 ${className}`} {...rest}>
       <View className="mr-3 w-6 items-center">
-        {rank != null ? <Text className="text-sm text-muted-foreground">{rank}</Text> : null}
+        {rank != null ? <Text className="text-sm text-primary">{rank}</Text> : null}
       </View>
       <View className="flex-1 flex-row items-center">
         {prefixIcon ? <View className="mr-2">{prefixIcon}</View> : null}
@@ -25,7 +35,10 @@ export const CurrentPriceItem = ({ rank, name, price, change, changePositive, pr
         </View>
       </View>
       <View className="ml-3 items-end">
-        <Text className={`text-sm font-semibold ${changePositive ? 'text-emerald-600' : 'text-red-500'}`}>{change}</Text>
+        <Text
+          className={`text-sm font-semibold ${changePositive ? 'text-emerald-600' : 'text-red-500'}`}>
+          {change}
+        </Text>
         {suffix}
       </View>
     </View>

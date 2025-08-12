@@ -40,7 +40,7 @@ function TabNavigator() {
         tabBarStyle: { backgroundColor: '#fff' },
         tabBarIcon: ({ color, size }) => {
           let name: keyof typeof Ionicons.glyphMap = 'home';
-      switch (route.name) {
+          switch (route.name) {
             case 'Home':
               name = 'home';
               break;
@@ -54,7 +54,7 @@ function TabNavigator() {
               name = 'notifications';
               break;
             case 'Balance':
-        name = 'wallet-outline';
+              name = 'wallet-outline';
               break;
           }
           return <Ionicons name={name} size={size} color={color} />;

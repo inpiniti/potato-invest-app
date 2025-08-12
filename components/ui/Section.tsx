@@ -8,25 +8,30 @@ export type SectionProps = ViewProps & {
   children?: React.ReactNode;
 };
 
-export const Section = ({ title, padded = true, footer, className = '', children, ...rest }: SectionProps) => {
-  const padding = padded ? 'p-4' : '';
-
+export const Section = ({
+  title,
+  padded = true,
+  footer,
+  className = '',
+  children,
+  ...rest
+}: SectionProps) => {
   const items = React.Children.toArray(children);
 
   return (
-    <View className={`bg-card ${padding} ${className}`} {...rest}>
-      <View className="mb-2">
-        <Text className="text-lg font-bold text-foreground">{title}</Text>
-      </View>
-      <View>
-        {items.map((child, idx) => (
-          <View key={idx} className={idx === 0 ? '' : 'border-t border-border'}>
-            <View className="py-3">{child}</View>
-          </View>
-        ))}
+    <View className="bg-card">
+      <View className={`${className}`} {...rest}>
+        <View className="mt-4 px-4">
+          <Text className="text-lg font-bold text-foreground">{title}</Text>
+        </View>
+        <View className="py-2">
+          {items.map((child, idx) => (
+            <View key={idx}>{child}</View>
+          ))}
+        </View>
       </View>
       {footer ? (
-        <View className="mt-2 border-t border-border pt-3">
+        <View className="border-t border-border p-4">
           {typeof footer === 'string' ? (
             <Text className="text-center text-primary">{footer}</Text>
           ) : (

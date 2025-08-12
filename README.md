@@ -72,6 +72,7 @@ npm run web
   - 잔고 탭 아이콘: `wallet-outline`
 
 ### 홈 상세 화면 이동
+
 - `HomeScreen`에 "상세 보기" 버튼을 추가하여 `HomeDetail` 스택 화면으로 이동합니다.
 - 스택 네비게이터에 `HomeDetail`을 등록하여 상단 헤더의 기본 뒤로가기 버튼이 표시됩니다.
 
@@ -133,7 +134,7 @@ import { Heading } from 'components/ui/Heading';
   {/* 라운딩은 rounded-app (tailwind.config.js의 borderRadius.app) */}
   {/* 다크모드는 루트에 class="dark" 토글로 적용 가능 */}
   {/* NativeWind 유틸을 사용하므로 클래스는 className에 입력 */}
-</Card>
+</Card>;
 ```
 
 ## 섹션/아이템 컴포넌트
@@ -171,7 +172,7 @@ import { CurrentPriceItem } from 'components/items/CurrentPriceItem';
 ```tsx
 import { BottomInfo } from 'components/BottomInfo';
 
-<BottomInfo />
+<BottomInfo />;
 ```
 
 필요한 커스터마이징(테마 색상, 탭 중앙 플로팅 버튼, 헤더 액션 등) 요청 주시면 반영하겠습니다.
@@ -308,7 +309,7 @@ import { BottomInfo } from 'components/BottomInfo';
   --accent: #1f2937;
   --accent-foreground: #f8fafc;
   --destructive: #f87171;
-  --border: rgba(255, 255, 255, 0.10);
+  --border: rgba(255, 255, 255, 0.1);
   --input: rgba(255, 255, 255, 0.15);
   --ring: #60a5fa;
   --chart-1: #60a5fa;
@@ -322,7 +323,7 @@ import { BottomInfo } from 'components/BottomInfo';
   --sidebar-primary-foreground: #0b1220;
   --sidebar-accent: #1f2937;
   --sidebar-accent-foreground: #f8fafc;
-  --sidebar-border: rgba(255, 255, 255, 0.10);
+  --sidebar-border: rgba(255, 255, 255, 0.1);
   --sidebar-ring: #60a5fa;
 }
 ```
