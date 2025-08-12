@@ -25,7 +25,11 @@ my-expo-app/
 ├─ components/             # 공용 컴포넌트
 │  ├─ Container.tsx
 │  ├─ EditScreenInfo.tsx
-│  └─ ScreenContent.tsx
+│  ├─ ScreenContent.tsx
+│  └─ ui/                 # 테마 기반 UI 컴포넌트
+│     ├─ Button.tsx
+│     ├─ Card.tsx
+│     └─ Heading.tsx
 ├─ assets/                 # 앱 아이콘/스플래시 등
 │  ├─ icon.png, splash.png, ...
 │  └─ images/.keep         # 이미지 폴더(필요 시 사용)
@@ -53,9 +57,14 @@ npm run web
 
 ## 네비게이션 구성
 
-- Bottom Tabs 5개: `Home`, `Search`, `Booster(부스터)`, `Notifications(알림)`, `Balance(잔고)`
+- Bottom Tabs 5개(좌→우): `Home`, `Balance(잔고)`, `Booster(부스터)`, `Notifications(알림)`, `Search("테스트")`
 - 각 탭은 `screens/`에 대응되는 화면 컴포넌트를 가집니다.
 - 상단 헤더는 Native Stack을 사용해 확장 가능하며, 현재 `RootNavigator`에서 Tab을 감싸고 있습니다.
+
+- 변경 사항
+  - 검색 탭 → "테스트"로 라벨 변경
+  - 잔고 탭과 검색 탭의 위치 교체
+  - 잔고 탭 아이콘: `wallet-outline`
 
 ### 홈 상세 화면 이동
 - `HomeScreen`에 "상세 보기" 버튼을 추가하여 `HomeDetail` 스택 화면으로 이동합니다.
@@ -94,6 +103,33 @@ npx expo start -c
 - 각 탭 화면 생성 및 연결
 - Tailwind 스캔 경로 확장, NativeWind 설정 유지
 - 에셋 폴더 보강(`assets/images`)
+- 공용 UI 컴포넌트 추가: `components/ui/{Button,Card,Heading}`
+- 검색 탭 라벨을 "테스트"로 변경하고, 테마 컴포넌트 미리보기 추가
+- 잔고/검색 탭 위치 교체, 잔고 아이콘을 `wallet-outline`으로 변경
+
+## 공용 UI 컴포넌트 사용 예
+
+검색 탭(테스트)에서 아래 컴포넌트를 미리볼 수 있습니다.
+
+```tsx
+import { Card } from 'components/ui/Card';
+import { Button } from 'components/ui/Button';
+import { Heading } from 'components/ui/Heading';
+
+// 예시
+<Card className="mt-6 w-4/5 items-center">
+  <Heading level={2}>Card 타이틀</Heading>
+  <Button className="mt-4 self-stretch" title="Primary 버튼" />
+  <Button className="mt-2 self-stretch" title="Secondary 버튼" variant="secondary" />
+  <Button className="mt-2 self-stretch" title="위험 버튼" variant="destructive" />
+  <Button className="mt-2 self-stretch" title="Ghost 버튼" variant="ghost" />
+  {/* 텍스트는 text-foreground 등 토큰 유틸 사용 */}
+  {/* 배경은 bg-background, 카드 bg-card, 버튼 bg-primary 등 */}
+  {/* 라운딩은 rounded-app (tailwind.config.js의 borderRadius.app) */}
+  {/* 다크모드는 루트에 class="dark" 토글로 적용 가능 */}
+  {/* NativeWind 유틸을 사용하므로 클래스는 className에 입력 */}
+</Card>
+```
 
 필요한 커스터마이징(테마 색상, 탭 중앙 플로팅 버튼, 헤더 액션 등) 요청 주시면 반영하겠습니다.
 

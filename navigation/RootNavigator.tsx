@@ -40,7 +40,7 @@ function TabNavigator() {
         tabBarStyle: { backgroundColor: '#fff' },
         tabBarIcon: ({ color, size }) => {
           let name: keyof typeof Ionicons.glyphMap = 'home';
-          switch (route.name) {
+      switch (route.name) {
             case 'Home':
               name = 'home';
               break;
@@ -54,21 +54,21 @@ function TabNavigator() {
               name = 'notifications';
               break;
             case 'Balance':
-              name = 'cash';
+        name = 'wallet-outline';
               break;
           }
           return <Ionicons name={name} size={size} color={color} />;
         },
       })}>
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: '홈' }} />
-      <Tab.Screen name="Search" component={SearchScreen} options={{ title: '검색' }} />
+      <Tab.Screen name="Balance" component={BalanceScreen} options={{ title: '잔고' }} />
       <Tab.Screen name="Booster" component={BoosterScreen} options={{ title: '부스터' }} />
       <Tab.Screen
         name="Notifications"
         component={NotificationsScreen}
         options={{ title: '알림' }}
       />
-      <Tab.Screen name="Balance" component={BalanceScreen} options={{ title: '잔고' }} />
+      <Tab.Screen name="Search" component={SearchScreen} options={{ title: '테스트' }} />
     </Tab.Navigator>
   );
 }
