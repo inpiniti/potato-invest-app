@@ -50,6 +50,7 @@ function mergeOutputs(res?: RankingResponse) {
 function pickName(row: any): string {
   return (
     row?.name ||
+    row?.knam ||
     row?.hts_kor_isnm ||
     row?.ovrs_item_name ||
     row?.rsym ||
