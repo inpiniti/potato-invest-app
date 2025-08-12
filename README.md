@@ -33,6 +33,8 @@ my-expo-app/
 │
 ├─ components/items/       # 리스트 아이템 컴포넌트
 │  └─ CurrentPriceItem.tsx
+│
+├─ components/BottomInfo.tsx # 하단 정보 섹션(의견보내기/고지/약관/아코디언)
 ├─ assets/                 # 앱 아이콘/스플래시 등
 │  ├─ icon.png, splash.png, ...
 │  └─ images/.keep         # 이미지 폴더(필요 시 사용)
@@ -157,6 +159,19 @@ import { CurrentPriceItem } from 'components/items/CurrentPriceItem';
   <CurrentPriceItem name="지금 핫한 주제별 커뮤니티" price="커뮤니티" change="" changePositive />
   <CurrentPriceItem name="증권 계좌에 돈 채우기" price="입금" change="" changePositive />
 </Section>
+```
+
+## 하단 정보(Accordion, BottomInfo)
+
+- Accordion: 제목을 눌러 내용을 펼치고 접는 간단한 컴포넌트
+- BottomInfo: “의견 보내기”, 감자증권 소개/고지, 약관/제작정보, “꼭 알아두세요” 아코디언을 포함한 하단 블록
+
+테스트 탭의 맨 하단에 배치되어 있습니다.
+
+```tsx
+import { BottomInfo } from 'components/BottomInfo';
+
+<BottomInfo />
 ```
 
 필요한 커스터마이징(테마 색상, 탭 중앙 플로팅 버튼, 헤더 액션 등) 요청 주시면 반영하겠습니다.
