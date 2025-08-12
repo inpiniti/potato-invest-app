@@ -7,9 +7,35 @@ import { Section } from '../components/ui/Section';
 import { CurrentPriceItem } from '../components/items/CurrentPriceItem';
 import { BottomInfo } from '../components/BottomInfo';
 import { useAuthStore } from 'stores/auth';
+import {
+  usePriceFluctRanking,
+  useVolumeSurgeRanking,
+  useVolumePowerRanking,
+  useUpRateRanking,
+  useDownRateRanking,
+  useNewHighRanking,
+  useNewLowRanking,
+  useTradeVolRanking,
+  useTradePbmnRanking,
+  useTradeGrowthRanking,
+  useTradeTurnoverRanking,
+  useMarketCapRanking,
+} from '../hooks/useKIRanking';
 
 export default function SearchScreen() {
   const { account, appKey, secretKey, tokens } = useAuthStore();
+  const priceFluct = usePriceFluctRanking();
+  const volumeSurge = useVolumeSurgeRanking();
+  const volumePower = useVolumePowerRanking();
+  const upRate = useUpRateRanking();
+  const downRate = useDownRateRanking();
+  const newHigh = useNewHighRanking();
+  const newLow = useNewLowRanking();
+  const tradeVol = useTradeVolRanking();
+  const tradePbmn = useTradePbmnRanking();
+  const tradeGrowth = useTradeGrowthRanking();
+  const tradeTurnover = useTradeTurnoverRanking();
+  const marketCap = useMarketCapRanking();
 
   return (
     <View className="flex-1 bg-neutral-100">
@@ -27,49 +53,277 @@ export default function SearchScreen() {
 
           <View className="w-full">
             <Section
-              title="실시간 거래대금 차트"
-              footer={<Text className="text-center text-primary">다른 차트 더 보기 ›</Text>}>
-              <CurrentPriceItem
-                rank={1}
-                name="두산에너빌리티"
-                price="69,800원"
-                change="+5.1%"
-                changePositive
-              />
-              <CurrentPriceItem rank={2} name="NAVER" price="225,000원" change="-1.9%" />
-              <CurrentPriceItem
-                rank={3}
-                name="이브이첨단소재"
-                price="2,630원"
-                change="+17.4%"
-                changePositive
-              />
+              title="가격 급등 상위 (NASDAQ, 1분 기준)"
+              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
+              {priceFluct.isPending && (
+                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
+              )}
+              {priceFluct.error && (
+                <Text className="px-5 py-3 text-center text-destructive">오류: {String(priceFluct.error)}</Text>
+              )}
+              {priceFluct.data?.slice?.(0, 10)?.map((row, idx) => (
+                <CurrentPriceItem
+                  key={idx}
+                  rank={idx + 1}
+                  name={row.name || '-'}
+                  price={row.price}
+                  change={row.changeText}
+                  changePositive={row.changePositive}
+                />
+              ))}
             </Section>
           </View>
 
           <View className="w-full">
             <Section
-              title="맞춤형 서비스"
-              footer={<Text className="text-center text-primary">더보기</Text>}>
-              <CurrentPriceItem
-                name="출석체크하고 주식받기"
-                price="리워드"
-                change=""
-                changePositive
-              />
-              <CurrentPriceItem name="오늘의 미션 확인하기" price="미션" change="" changePositive />
-              <CurrentPriceItem
-                name="지금 핫한 주제별 커뮤니티"
-                price="커뮤니티"
-                change=""
-                changePositive
-              />
-              <CurrentPriceItem
-                name="증권 계좌에 돈 채우기"
-                price="입금"
-                change=""
-                changePositive
-              />
+              title="거래량 급증 상위 (NASDAQ)"
+              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
+              {volumeSurge.isPending && (
+                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
+              )}
+              {volumeSurge.error && (
+                <Text className="px-5 py-3 text-center text-destructive">오류: {String(volumeSurge.error)}</Text>
+              )}
+              {volumeSurge.data?.slice?.(0, 10)?.map((row, idx) => (
+                <CurrentPriceItem
+                  key={idx}
+                  rank={idx + 1}
+                  name={row.name || '-'}
+                  price={row.price}
+                  change={row.changeText}
+                  changePositive={row.changePositive}
+                />
+              ))}
+            </Section>
+          </View>
+
+          <View className="w-full">
+            <Section
+              title="매수 체결강도 상위 (NASDAQ)"
+              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
+              {volumePower.isPending && (
+                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
+              )}
+              {volumePower.error && (
+                <Text className="px-5 py-3 text-center text-destructive">오류: {String(volumePower.error)}</Text>
+              )}
+              {volumePower.data?.slice?.(0, 10)?.map((row, idx) => (
+                <CurrentPriceItem
+                  key={idx}
+                  rank={idx + 1}
+                  name={row.name || '-'}
+                  price={row.price}
+                  change={row.changeText}
+                  changePositive={row.changePositive}
+                />
+              ))}
+            </Section>
+          </View>
+
+          <View className="w-full">
+            <Section
+              title="상승률 상위 (NASDAQ)"
+              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
+              {upRate.isPending && (
+                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
+              )}
+              {upRate.error && (
+                <Text className="px-5 py-3 text-center text-destructive">오류: {String(upRate.error)}</Text>
+              )}
+              {upRate.data?.slice?.(0, 10)?.map((row, idx) => (
+                <CurrentPriceItem
+                  key={idx}
+                  rank={idx + 1}
+                  name={row.name || '-'}
+                  price={row.price}
+                  change={row.changeText}
+                  changePositive={row.changePositive}
+                />
+              ))}
+            </Section>
+          </View>
+
+          <View className="w-full">
+            <Section
+              title="하락률 상위 (NASDAQ)"
+              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
+              {downRate.isPending && (
+                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
+              )}
+              {downRate.error && (
+                <Text className="px-5 py-3 text-center text-destructive">오류: {String(downRate.error)}</Text>
+              )}
+              {downRate.data?.slice?.(0, 10)?.map((row, idx) => (
+                <CurrentPriceItem
+                  key={idx}
+                  rank={idx + 1}
+                  name={row.name || '-'}
+                  price={row.price}
+                  change={row.changeText}
+                  changePositive={row.changePositive}
+                />
+              ))}
+            </Section>
+          </View>
+
+          <View className="w-full">
+            <Section
+              title="신고가 (NASDAQ)"
+              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
+              {newHigh.isPending && (
+                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
+              )}
+              {newHigh.error && (
+                <Text className="px-5 py-3 text-center text-destructive">오류: {String(newHigh.error)}</Text>
+              )}
+              {newHigh.data?.slice?.(0, 10)?.map((row, idx) => (
+                <CurrentPriceItem
+                  key={idx}
+                  rank={idx + 1}
+                  name={row.name || '-'}
+                  price={row.price}
+                  change={row.changeText}
+                  changePositive={row.changePositive}
+                />
+              ))}
+            </Section>
+          </View>
+
+          <View className="w-full">
+            <Section
+              title="신저가 (NASDAQ)"
+              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
+              {newLow.isPending && (
+                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
+              )}
+              {newLow.error && (
+                <Text className="px-5 py-3 text-center text-destructive">오류: {String(newLow.error)}</Text>
+              )}
+              {newLow.data?.slice?.(0, 10)?.map((row, idx) => (
+                <CurrentPriceItem
+                  key={idx}
+                  rank={idx + 1}
+                  name={row.name || '-'}
+                  price={row.price}
+                  change={row.changeText}
+                  changePositive={row.changePositive}
+                />
+              ))}
+            </Section>
+          </View>
+
+          <View className="w-full">
+            <Section
+              title="거래량 순위 (NASDAQ)"
+              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
+              {tradeVol.isPending && (
+                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
+              )}
+              {tradeVol.error && (
+                <Text className="px-5 py-3 text-center text-destructive">오류: {String(tradeVol.error)}</Text>
+              )}
+              {tradeVol.data?.slice?.(0, 10)?.map((row, idx) => (
+                <CurrentPriceItem
+                  key={idx}
+                  rank={idx + 1}
+                  name={row.name || '-'}
+                  price={row.price}
+                  change={row.changeText}
+                  changePositive={row.changePositive}
+                />
+              ))}
+            </Section>
+          </View>
+
+          <View className="w-full">
+            <Section
+              title="거래대금 순위 (NASDAQ)"
+              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
+              {tradePbmn.isPending && (
+                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
+              )}
+              {tradePbmn.error && (
+                <Text className="px-5 py-3 text-center text-destructive">오류: {String(tradePbmn.error)}</Text>
+              )}
+              {tradePbmn.data?.slice?.(0, 10)?.map((row, idx) => (
+                <CurrentPriceItem
+                  key={idx}
+                  rank={idx + 1}
+                  name={row.name || '-'}
+                  price={row.price}
+                  change={row.changeText}
+                  changePositive={row.changePositive}
+                />
+              ))}
+            </Section>
+          </View>
+
+          <View className="w-full">
+            <Section
+              title="거래 증가율 순위 (NASDAQ)"
+              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
+              {tradeGrowth.isPending && (
+                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
+              )}
+              {tradeGrowth.error && (
+                <Text className="px-5 py-3 text-center text-destructive">오류: {String(tradeGrowth.error)}</Text>
+              )}
+              {tradeGrowth.data?.slice?.(0, 10)?.map((row, idx) => (
+                <CurrentPriceItem
+                  key={idx}
+                  rank={idx + 1}
+                  name={row.name || '-'}
+                  price={row.price}
+                  change={row.changeText}
+                  changePositive={row.changePositive}
+                />
+              ))}
+            </Section>
+          </View>
+
+          <View className="w-full">
+            <Section
+              title="거래 회전율 순위 (NASDAQ)"
+              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
+              {tradeTurnover.isPending && (
+                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
+              )}
+              {tradeTurnover.error && (
+                <Text className="px-5 py-3 text-center text-destructive">오류: {String(tradeTurnover.error)}</Text>
+              )}
+              {tradeTurnover.data?.slice?.(0, 10)?.map((row, idx) => (
+                <CurrentPriceItem
+                  key={idx}
+                  rank={idx + 1}
+                  name={row.name || '-'}
+                  price={row.price}
+                  change={row.changeText}
+                  changePositive={row.changePositive}
+                />
+              ))}
+            </Section>
+          </View>
+
+          <View className="w-full">
+            <Section
+              title="시가총액 순위 (NASDAQ)"
+              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
+              {marketCap.isPending && (
+                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
+              )}
+              {marketCap.error && (
+                <Text className="px-5 py-3 text-center text-destructive">오류: {String(marketCap.error)}</Text>
+              )}
+              {marketCap.data?.slice?.(0, 10)?.map((row, idx) => (
+                <CurrentPriceItem
+                  key={idx}
+                  rank={idx + 1}
+                  name={row.name || '-'}
+                  price={row.price}
+                  change={row.changeText}
+                  changePositive={row.changePositive}
+                />
+              ))}
             </Section>
           </View>
 

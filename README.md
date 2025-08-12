@@ -1,3 +1,43 @@
+## 해외주식 순위 조회 추가 (React Query, 1분 자동 갱신)
+
+한국투자 Open API의 해외주식 시세분석 순위 일부를 조회하는 훅과 화면 구성을 추가했습니다.
+
+- 적용 API (헤더는 문서상 필수값만 사용)
+  - 가격급등락: GET /uapi/overseas-stock/v1/ranking/price-fluct (TR: HHDFS76260000)
+  - 거래량급증: GET /uapi/overseas-stock/v1/ranking/volume-surge (TR: HHDFS76270000)
+  - 매수체결강도상위: GET /uapi/overseas-stock/v1/ranking/volume-power (TR: HHDFS76280000)
+- 공통 조건
+  - 거래소(EXCD): NAS (나스닥)
+  - 고객타입(custtype): P (개인)
+  - Authorization: 로그인으로 발급받은 Access Token 사용
+  - appkey/appsecret: 로그인 입력값 재사용
+- 주기: 1분 간격으로 자동 재조회 (React Query refetchInterval)
+
+참고: 문서에 따르면 위 3개 순위 API는 모의투자 미지원입니다. 데모 환경(env=demo)에서는 호출 실패할 수 있으니 실환경(env=real)에서 테스트하세요.
+
+### 주요 코드
+
+- 앱 전역 Provider: `App.tsx`
+  - `@tanstack/react-query`의 `QueryClientProvider`로 래핑
+- API 클라이언트: `lib/kiApi.ts`
+  - 공통 헤더 빌더와 순위 API 헬퍼 3종(`getPriceFluct`, `getVolumeSurge`, `getVolumePower`)
+  - 필수 헤더만 포함: `content-type`, `authorization`, `appkey`, `appsecret`, `tr_id`, `custtype`
+- 조회 훅: `hooks/useKIRanking.ts`
+  - `usePriceFluctRanking`, `useVolumeSurgeRanking`, `useVolumePowerRanking`
+  - 결과는 공통 형태로 정규화하여 화면에서 바로 렌더링
+- 화면: `screens/SearchScreen.tsx`
+  - "가격 급등 상위", "거래량 급증 상위", "매수 체결강도 상위" 섹션 추가
+  - 로딩/에러/데이터 표시 및 1분 자동 갱신 표시
+
+### 사용 방법
+
+1) 로그인 화면에서 App Key, Secret Key 입력 후 토큰 발급까지 정상 완료.
+2) 하단 탭의 "테스트"(Search)로 이동.
+3) 위 3개 섹션이 1분마다 자동 갱신되며 상위 결과가 나열됩니다.
+
+### 확장 예정
+
+문서 링크의 다른 순위 API(상승율/하락율, 신고가/신저가, 거래량/거래대금/증가율/회전율/시가총액 등)는 TR ID 및 필수 파라미터 확인 후 동일 패턴으로 확장 가능합니다. 필요 시 TR ID를 공유해 주시면 바로 추가하겠습니다.
 # my-expo-app
 
 Expo + React Native + NativeWind 기반 앱으로, 하단 탭 5개와 상단 헤더가 있는 기본 레이아웃을 포함합니다.
