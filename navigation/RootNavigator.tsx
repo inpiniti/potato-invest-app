@@ -6,16 +6,17 @@ import { Ionicons } from '@expo/vector-icons';
 
 import HomeScreen from '../screens/HomeScreen';
 import SearchScreen from '../screens/SearchScreen';
-import CreateScreen from '../screens/CreateScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import BoosterScreen from '../screens/BoosterScreen';
+import BalanceScreen from '../screens/BalanceScreen';
+import HomeDetailScreen from '../screens/HomeDetailScreen';
 
 export type RootTabParamList = {
   Home: undefined;
   Search: undefined;
-  Create: undefined;
+  Booster: undefined;
   Notifications: undefined;
-  Profile: undefined;
+  Balance: undefined;
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -46,14 +47,14 @@ function TabNavigator() {
             case 'Search':
               name = 'search';
               break;
-            case 'Create':
-              name = 'add-circle';
+            case 'Booster':
+              name = 'flash';
               break;
             case 'Notifications':
               name = 'notifications';
               break;
-            case 'Profile':
-              name = 'person';
+            case 'Balance':
+              name = 'cash';
               break;
           }
           return <Ionicons name={name} size={size} color={color} />;
@@ -61,13 +62,13 @@ function TabNavigator() {
       })}>
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: '홈' }} />
       <Tab.Screen name="Search" component={SearchScreen} options={{ title: '검색' }} />
-      <Tab.Screen name="Create" component={CreateScreen} options={{ title: '작성' }} />
+      <Tab.Screen name="Booster" component={BoosterScreen} options={{ title: '부스터' }} />
       <Tab.Screen
         name="Notifications"
         component={NotificationsScreen}
         options={{ title: '알림' }}
       />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: '프로필' }} />
+      <Tab.Screen name="Balance" component={BalanceScreen} options={{ title: '잔고' }} />
     </Tab.Navigator>
   );
 }
@@ -77,6 +78,7 @@ export default function RootNavigator() {
     <NavigationContainer theme={MyTheme}>
       <Stack.Navigator>
         <Stack.Screen name="Root" component={TabNavigator} options={{ headerShown: false }} />
+        <Stack.Screen name="HomeDetail" component={HomeDetailScreen} options={{ title: '상세' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
