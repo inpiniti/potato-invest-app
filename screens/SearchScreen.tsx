@@ -6,8 +6,11 @@ import { Heading } from '../components/ui/Heading';
 import { Section } from '../components/ui/Section';
 import { CurrentPriceItem } from '../components/items/CurrentPriceItem';
 import { BottomInfo } from '../components/BottomInfo';
+import { useAuthStore } from 'stores/auth';
 
 export default function SearchScreen() {
+  const { account, appKey, secretKey, tokens } = useAuthStore();
+
   return (
     <View className="flex-1 bg-neutral-100">
       <ScrollView contentContainerStyle={{ alignItems: 'center' }} className="w-full">
@@ -64,6 +67,28 @@ export default function SearchScreen() {
               <CurrentPriceItem
                 name="증권 계좌에 돈 채우기"
                 price="입금"
+                change=""
+                changePositive
+              />
+            </Section>
+          </View>
+
+          <View className="w-full">
+            <Section
+              title="로그인정보"
+              footer={<Text className="text-center text-primary">더보기</Text>}>
+              <CurrentPriceItem name="계좌번호" price={account} change="" changePositive />
+              <CurrentPriceItem name="앱 키" price={appKey} change="" changePositive />
+              <CurrentPriceItem name="시크릿 키" price={secretKey} change="" changePositive />
+              <CurrentPriceItem
+                name="접근토큰"
+                price={String(tokens?.accessToken)}
+                change=""
+                changePositive
+              />
+              <CurrentPriceItem
+                name="웹소켓 접속키"
+                price={String(tokens?.approvalKey)}
                 change=""
                 changePositive
               />
