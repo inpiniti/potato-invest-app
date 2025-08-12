@@ -30,6 +30,9 @@ my-expo-app/
 │     ├─ Button.tsx
 │     ├─ Card.tsx
 │     └─ Heading.tsx
+│
+├─ components/items/       # 리스트 아이템 컴포넌트
+│  └─ CurrentPriceItem.tsx
 ├─ assets/                 # 앱 아이콘/스플래시 등
 │  ├─ icon.png, splash.png, ...
 │  └─ images/.keep         # 이미지 폴더(필요 시 사용)
@@ -129,6 +132,31 @@ import { Heading } from 'components/ui/Heading';
   {/* 다크모드는 루트에 class="dark" 토글로 적용 가능 */}
   {/* NativeWind 유틸을 사용하므로 클래스는 className에 입력 */}
 </Card>
+```
+
+## 섹션/아이템 컴포넌트
+
+- Section: 제목 + 리스트를 담는 컨테이너(카드 스타일), 아이템 간 구분선 자동 처리, 헤더 우측 액션(`headerRight`) 지원
+- CurrentPriceItem: 순위/이름/가격/등락률 등 간단한 현재가 표시용 아이템
+
+검색 탭(“테스트”)에 예시가 추가되어 있습니다.
+
+```tsx
+import { Section } from 'components/ui/Section';
+import { CurrentPriceItem } from 'components/items/CurrentPriceItem';
+
+<Section title="실시간 거래대금 차트" headerRight={<Text className="text-primary">다른 차트 더 보기 ›</Text>}>
+  <CurrentPriceItem rank={1} name="두산에너빌리티" price="69,800원" change="+5.1%" changePositive />
+  <CurrentPriceItem rank={2} name="NAVER" price="225,000원" change="-1.9%" />
+  <CurrentPriceItem rank={3} name="이브이첨단소재" price="2,630원" change="+17.4%" changePositive />
+</Section>
+
+<Section title="맞춤형 서비스">
+  <CurrentPriceItem name="출석체크하고 주식받기" price="리워드" change="" changePositive />
+  <CurrentPriceItem name="오늘의 미션 확인하기" price="미션" change="" changePositive />
+  <CurrentPriceItem name="지금 핫한 주제별 커뮤니티" price="커뮤니티" change="" changePositive />
+  <CurrentPriceItem name="증권 계좌에 돈 채우기" price="입금" change="" changePositive />
+</Section>
 ```
 
 필요한 커스터마이징(테마 색상, 탭 중앙 플로팅 버튼, 헤더 액션 등) 요청 주시면 반영하겠습니다.
