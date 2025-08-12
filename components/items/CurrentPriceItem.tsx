@@ -1,7 +1,10 @@
 import React from 'react';
 import { View, Text, ViewProps } from 'react-native';
+import { getLogoByTicker } from '../../logoData';
+import { LogoSvg } from '../ui/LogoSvg';
 
 export type CurrentPriceItemProps = ViewProps & {
+  ticker?: string;
   rank?: number;
   name: string;
   price: string; // e.g., "69,800원"
@@ -12,6 +15,7 @@ export type CurrentPriceItemProps = ViewProps & {
 };
 
 export const CurrentPriceItem = ({
+  ticker,
   rank,
   name,
   price,
@@ -22,25 +26,33 @@ export const CurrentPriceItem = ({
   className = '',
   ...rest
 }: CurrentPriceItemProps) => {
+  const logo = getLogoByTicker(ticker);
+  const logoUri = logo ? `https://s3-symbol-logo.tradingview.com/${logo.logoid}--big.svg` : null;
   return (
     <View className={`flex-row items-center justify-between p-2 ${className}`} {...rest}>
       <View className="mr-3 w-6 items-center">
         {rank != null ? <Text className="text-sm text-primary">{rank}</Text> : null}
       </View>
+      {logoUri ? <LogoSvg uri={logoUri} size={30} className="mr-2" /> : null}
       <View className="flex-1 flex-row items-center">
         {prefixIcon ? <View className="mr-2">{prefixIcon}</View> : null}
         <View className="flex-1">
-          <Text className="text-base font-semibold text-foreground">{name}</Text>
-          <Text className="text-xs text-muted-foreground">{price}</Text>
+          <Text
+            className="text-base font-semibold text-foreground"
+            numberOfLines={1}
+            ellipsizeMode="tail">
+            {name}
+          </Text>
+          <View className="mt-0.5 flex-row items-center gap-1">
+            <Text className="text-xs text-muted-foreground">{price}</Text>
+            <Text
+              className={`text-xs font-semibold ${changePositive ? 'text-red-500' : 'text-blue-500'}`}>
+              {change}
+            </Text>
+          </View>
         </View>
       </View>
-      <View className="ml-3 items-end">
-        <Text
-          className={`text-sm font-semibold ${changePositive ? 'text-emerald-600' : 'text-red-500'}`}>
-          {change}
-        </Text>
-        {suffix}
-      </View>
+      <View className="ml-3 flex-row items-center">{suffix}</View>
     </View>
   );
 };

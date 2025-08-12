@@ -59,12 +59,15 @@ export default function SearchScreen() {
                 <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
               )}
               {priceFluct.error && (
-                <Text className="px-5 py-3 text-center text-destructive">오류: {String(priceFluct.error)}</Text>
+                <Text className="px-5 py-3 text-center text-destructive">
+                  오류: {String(priceFluct.error)}
+                </Text>
               )}
               {priceFluct.data?.slice?.(0, 10)?.map((row, idx) => (
                 <CurrentPriceItem
                   key={idx}
                   rank={idx + 1}
+                  ticker={row.ticker}
                   name={row.name || '-'}
                   price={row.price}
                   change={row.changeText}
@@ -82,12 +85,15 @@ export default function SearchScreen() {
                 <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
               )}
               {volumeSurge.error && (
-                <Text className="px-5 py-3 text-center text-destructive">오류: {String(volumeSurge.error)}</Text>
+                <Text className="px-5 py-3 text-center text-destructive">
+                  오류: {String(volumeSurge.error)}
+                </Text>
               )}
               {volumeSurge.data?.slice?.(0, 10)?.map((row, idx) => (
                 <CurrentPriceItem
                   key={idx}
                   rank={idx + 1}
+                  ticker={row.ticker}
                   name={row.name || '-'}
                   price={row.price}
                   change={row.changeText}
@@ -105,12 +111,15 @@ export default function SearchScreen() {
                 <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
               )}
               {volumePower.error && (
-                <Text className="px-5 py-3 text-center text-destructive">오류: {String(volumePower.error)}</Text>
+                <Text className="px-5 py-3 text-center text-destructive">
+                  오류: {String(volumePower.error)}
+                </Text>
               )}
               {volumePower.data?.slice?.(0, 10)?.map((row, idx) => (
                 <CurrentPriceItem
                   key={idx}
                   rank={idx + 1}
+                  ticker={row.ticker}
                   name={row.name || '-'}
                   price={row.price}
                   change={row.changeText}
@@ -128,12 +137,15 @@ export default function SearchScreen() {
                 <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
               )}
               {upRate.error && (
-                <Text className="px-5 py-3 text-center text-destructive">오류: {String(upRate.error)}</Text>
+                <Text className="px-5 py-3 text-center text-destructive">
+                  오류: {String(upRate.error)}
+                </Text>
               )}
               {upRate.data?.slice?.(0, 10)?.map((row, idx) => (
                 <CurrentPriceItem
                   key={idx}
                   rank={idx + 1}
+                  ticker={row.ticker}
                   name={row.name || '-'}
                   price={row.price}
                   change={row.changeText}
@@ -151,12 +163,15 @@ export default function SearchScreen() {
                 <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
               )}
               {downRate.error && (
-                <Text className="px-5 py-3 text-center text-destructive">오류: {String(downRate.error)}</Text>
+                <Text className="px-5 py-3 text-center text-destructive">
+                  오류: {String(downRate.error)}
+                </Text>
               )}
               {downRate.data?.slice?.(0, 10)?.map((row, idx) => (
                 <CurrentPriceItem
                   key={idx}
                   rank={idx + 1}
+                  ticker={row.ticker}
                   name={row.name || '-'}
                   price={row.price}
                   change={row.changeText}
@@ -174,12 +189,15 @@ export default function SearchScreen() {
                 <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
               )}
               {newHigh.error && (
-                <Text className="px-5 py-3 text-center text-destructive">오류: {String(newHigh.error)}</Text>
+                <Text className="px-5 py-3 text-center text-destructive">
+                  오류: {String(newHigh.error)}
+                </Text>
               )}
               {newHigh.data?.slice?.(0, 10)?.map((row, idx) => (
                 <CurrentPriceItem
                   key={idx}
                   rank={idx + 1}
+                  ticker={row.ticker}
                   name={row.name || '-'}
                   price={row.price}
                   change={row.changeText}
@@ -197,12 +215,15 @@ export default function SearchScreen() {
                 <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
               )}
               {newLow.error && (
-                <Text className="px-5 py-3 text-center text-destructive">오류: {String(newLow.error)}</Text>
+                <Text className="px-5 py-3 text-center text-destructive">
+                  오류: {String(newLow.error)}
+                </Text>
               )}
               {newLow.data?.slice?.(0, 10)?.map((row, idx) => (
                 <CurrentPriceItem
                   key={idx}
                   rank={idx + 1}
+                  ticker={row.ticker}
                   name={row.name || '-'}
                   price={row.price}
                   change={row.changeText}
@@ -220,12 +241,15 @@ export default function SearchScreen() {
                 <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
               )}
               {tradeVol.error && (
-                <Text className="px-5 py-3 text-center text-destructive">오류: {String(tradeVol.error)}</Text>
+                <Text className="px-5 py-3 text-center text-destructive">
+                  오류: {String(tradeVol.error)}
+                </Text>
               )}
               {tradeVol.data?.slice?.(0, 10)?.map((row, idx) => (
                 <CurrentPriceItem
                   key={idx}
                   rank={idx + 1}
+                  ticker={row.ticker}
                   name={row.name || '-'}
                   price={row.price}
                   change={row.changeText}
@@ -243,12 +267,15 @@ export default function SearchScreen() {
                 <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
               )}
               {tradePbmn.error && (
-                <Text className="px-5 py-3 text-center text-destructive">오류: {String(tradePbmn.error)}</Text>
+                <Text className="px-5 py-3 text-center text-destructive">
+                  오류: {String(tradePbmn.error)}
+                </Text>
               )}
               {tradePbmn.data?.slice?.(0, 10)?.map((row, idx) => (
                 <CurrentPriceItem
                   key={idx}
                   rank={idx + 1}
+                  ticker={row.ticker}
                   name={row.name || '-'}
                   price={row.price}
                   change={row.changeText}
@@ -266,12 +293,15 @@ export default function SearchScreen() {
                 <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
               )}
               {tradeGrowth.error && (
-                <Text className="px-5 py-3 text-center text-destructive">오류: {String(tradeGrowth.error)}</Text>
+                <Text className="px-5 py-3 text-center text-destructive">
+                  오류: {String(tradeGrowth.error)}
+                </Text>
               )}
               {tradeGrowth.data?.slice?.(0, 10)?.map((row, idx) => (
                 <CurrentPriceItem
                   key={idx}
                   rank={idx + 1}
+                  ticker={row.ticker}
                   name={row.name || '-'}
                   price={row.price}
                   change={row.changeText}
@@ -289,12 +319,15 @@ export default function SearchScreen() {
                 <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
               )}
               {tradeTurnover.error && (
-                <Text className="px-5 py-3 text-center text-destructive">오류: {String(tradeTurnover.error)}</Text>
+                <Text className="px-5 py-3 text-center text-destructive">
+                  오류: {String(tradeTurnover.error)}
+                </Text>
               )}
               {tradeTurnover.data?.slice?.(0, 10)?.map((row, idx) => (
                 <CurrentPriceItem
                   key={idx}
                   rank={idx + 1}
+                  ticker={row.ticker}
                   name={row.name || '-'}
                   price={row.price}
                   change={row.changeText}
@@ -312,12 +345,15 @@ export default function SearchScreen() {
                 <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
               )}
               {marketCap.error && (
-                <Text className="px-5 py-3 text-center text-destructive">오류: {String(marketCap.error)}</Text>
+                <Text className="px-5 py-3 text-center text-destructive">
+                  오류: {String(marketCap.error)}
+                </Text>
               )}
               {marketCap.data?.slice?.(0, 10)?.map((row, idx) => (
                 <CurrentPriceItem
                   key={idx}
                   rank={idx + 1}
+                  ticker={row.ticker}
                   name={row.name || '-'}
                   price={row.price}
                   change={row.changeText}

@@ -86,6 +86,7 @@ function pickChangeRate(row: any): { text: string; positive: boolean } {
 }
 
 export type NormalizedRow = {
+  ticker: string;
   name: string;
   price: string;
   changeText: string;
@@ -98,6 +99,7 @@ function normalizeRows(rows: any[]): NormalizedRow[] {
   const mapped = arr.map((r) => {
     const { text, positive } = pickChangeRate(r);
     return {
+      ticker: pickSymbol(r),
       name: `${pickSymbol(r)} (${pickName(r)})`,
       price: pickPrice(r),
       changeText: text,
