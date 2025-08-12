@@ -6,7 +6,7 @@ export default function SearchScreen() {
   return (
     <View className="flex-1">
       <ScreenContent title="Search" path="screens/SearchScreen.tsx">
-        <Text className="mt-4 text-center text-base">검색 화면입니다.</Text>
+        <Text className="mt-4 text-center text-base text-foreground">검색 화면입니다.</Text>
       </ScreenContent>
     </View>
   );
