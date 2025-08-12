@@ -208,6 +208,51 @@ import { BottomInfo } from 'components/BottomInfo';
 
 필요한 커스터마이징(테마 색상, 탭 중앙 플로팅 버튼, 헤더 액션 등) 요청 주시면 반영하겠습니다.
 
+## 한국투자 API 연동(로그인/웹소켓 승인키)
+
+본 프로젝트는 로그인 시 한국투자 API의 토큰 발급과 웹소켓 승인키 발급을 호출합니다. 문서 경로 예:
+- 토큰: `/oauth2/tokenP` (grant_type=client_credentials, appkey, appsecret)
+- 승인키: `/oauth2/Approval` (appkey, appsecret)
+
+환경별 호스트
+- real: https://openapi.koreainvestment.com:9443
+- demo: https://openapivts.koreainvestment.com:29443
+
+설치
+```powershell
+npm i zustand @react-native-async-storage/async-storage
+```
+
+파일 구조(추가)
+- `stores/auth.ts`: 계정/키/환경 + 토큰/승인키 영속 저장(Zustand + AsyncStorage)
+- `lib/kiApi.ts`: 토큰/승인키 발급 API 클라이언트
+- `hooks/useKIAuth.ts`: 로그인 절차(토큰 → 승인키) 훅
+- `hooks/useKIWebSocket.ts`: 승인키/WS 접속 정보 준비 훅(예시)
+
+사용(로그인)
+```tsx
+import { useKIAuth } from '../hooks/useKIAuth';
+const { login } = useKIAuth();
+await login(); // 성공 시 토큰/승인키가 stores/auth.ts에 저장
+```
+
+스토어 상태
+```ts
+type Tokens = { accessToken: string|null; tokenExpiresAt: number|null; approvalKey: string|null };
+type AuthState = {
+  account: string; appKey: string; secretKey: string; env: 'demo'|'real';
+  tokens: Tokens;
+};
+```
+
+LoginScreen
+- 입력값(계좌번호/App Key/Secret Key)은 Zustand 스토어로 관리되고, 앱 재실행/로그인 화면 재방문 시 자동 채워집니다.
+- “시작하기” 클릭 시 토큰/승인키 발급 후 Root 탭으로 전환.
+
+주의
+- 실제 운영 접속 URL/파라미터는 상품 문서 최신본을 확인하세요. 기관/계정별 제약이 있을 수 있습니다.
+- WebSocket 실제 구독 URL/프로토콜은 서비스에 따라 상이할 수 있어 hook에는 예시만 포함했습니다.
+
 ## Design Theme (Toss Invest inspired)
 
 참고: 이 환경에서는 Playwright MCP로의 전체 브라우징은 직접 실행하지 않습니다. 공개 페이지를 기반으로 톤/무드를 참고해 테마 토큰을 추출·정리한 것이며, 정확한 색상은 디자이너 확인 또는 컬러 피커로 보정하는 것을 권장합니다.
