@@ -29,6 +29,45 @@
   - "가격 급등 상위", "거래량 급증 상위", "매수 체결강도 상위" 섹션 추가
   - 로딩/에러/데이터 표시 및 1분 자동 갱신 표시
 
+### 데이터/상태 폴더 구조 (store/hook/api)
+
+- `stores/`
+  - `stores/auth.ts`: 계좌/키/환경 + 토큰/승인키를 Zustand + AsyncStorage로 영속 저장
+    - shape: `{ account, appKey, secretKey, env, tokens: { accessToken, tokenExpiresAt, approvalKey } }`
+    - actions: `setCredentials`, `setTokens`, `reset`
+
+- `lib/`
+  - `lib/kiApi.ts`: 한국투자 API 클라이언트
+    - 토큰 발급: `issueAccessToken()`, 승인키 발급: `issueApprovalKey()`
+    - 공통 HTTP/헤더: `buildHeaders()` (content-type, authorization, appkey, appsecret, tr_id, custtype)
+    - 순위 공통 호출기: `getOverseasRanking()` (쿼리: EXCD=NAS, KEYB/AUTH 공란 포함)
+    - 순위 헬퍼 구현(실사용 TR ID 포함):
+      - 가격급등락 `getPriceFluct` (TR: HHDFS76260000)
+      - 거래량급증 `getVolumeSurge` (TR: HHDFS76270000)
+      - 매수체결강도상위 `getVolumePower` (TR: HHDFS76280000)
+      - 상승/하락률 `getUpdownRate` (TR: HHDFS76290000)
+      - 신고/신저가 `getNewHighLow` (TR: HHDFS76300000)
+      - 거래량 순위 `getTradeVol` (TR: HHDFS76310010)
+      - 거래대금 순위 `getTradePbmn` (TR: HHDFS76320010)
+      - 거래 증가율 순위 `getTradeGrowth` (TR: HHDFS76330000)
+      - 거래 회전율 순위 `getTradeTurnover` (TR: HHDFS76340000)
+      - 시가총액 순위 `getMarketCap` (TR: HHDFS76350100)
+    - 구현 메모: 응답은 대개 `output1`(요약) + `output2`(리스트) 구조 → 리스트 병합 시 `output2` 우선 사용
+
+- `hooks/`
+  - 인증: `hooks/useKIAuth.ts` (토큰·승인키 발급), `hooks/useKIWebSocket.ts` (WS 접속 정보 준비 예시)
+  - 순위: `hooks/useKIRanking.ts` (React Query + 1분 refetchInterval)
+    - 제공 훅(모두 EXCD=NAS 기본값):
+      - `usePriceFluctRanking`, `useVolumeSurgeRanking`, `useVolumePowerRanking`
+      - `useUpRateRanking`, `useDownRateRanking`, `useNewHighRanking`, `useNewLowRanking`
+      - `useTradeVolRanking`, `useTradePbmnRanking`, `useTradeGrowthRanking`, `useTradeTurnoverRanking`, `useMarketCapRanking`
+    - 정규화: 종목명/가격/등락률 텍스트로 가공, ticker도 추출하여 아이콘/로고에 활용 가능
+
+- `components/`
+  - `components/items/CurrentPriceItem.tsx`: `ticker` prop 지원, 가격/등락률 표시, 길면 이름 말줄임 처리
+  - `components/ui/LogoSvg.tsx`: TradingView SVG 로고를 원형으로 중앙 정렬 렌더 (viewBox 보정)
+  - `logoData.ts`: 방대한 `logos[]` 데이터와 `getLogoByTicker()` 제공 (티커 → TradingView logoid)
+
 ### 사용 방법
 
 1. 로그인 화면에서 App Key, Secret Key 입력 후 토큰 발급까지 정상 완료.
@@ -74,10 +113,24 @@ my-expo-app/
 │     ├─ Card.tsx
 │     ├─ Heading.tsx
 │     ├─ Input.tsx
-│     └─ SegmentedTabs.tsx
+│     ├─ SegmentedTabs.tsx
+│     └─ LogoSvg.tsx
 │
 ├─ components/items/       # 리스트 아이템 컴포넌트
 │  └─ CurrentPriceItem.tsx
+│
+├─ hooks/                  # 데이터 훅(인증/순위 등)
+│  ├─ useKIAuth.ts
+│  ├─ useKIRanking.ts
+│  └─ useKIWebSocket.ts
+│
+├─ lib/                    # API 클라이언트
+│  └─ kiApi.ts
+│
+├─ stores/                 # 앱 상태 저장소
+│  └─ auth.ts
+│
+├─ logoData.ts             # 티커→TradingView logoid 매핑 데이터/헬퍼
 │
 ├─ components/BottomInfo.tsx # 하단 정보 섹션(의견보내기/고지/약관/아코디언)
 ├─ assets/                 # 앱 아이콘/스플래시 등
