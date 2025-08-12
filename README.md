@@ -15,12 +15,14 @@ my-expo-app/
 ├─ App.tsx                 # 네비게이션 진입점
 ├─ navigation/
 │  └─ RootNavigator.tsx    # Stack + BottomTab 레이아웃
-├─ screens/                # 5개 탭 화면 + 상세
+├─ screens/                # 5개 탭 화면 + 온보딩(스플래시/로그인) + 상세
 │  ├─ HomeScreen.tsx
 │  ├─ SearchScreen.tsx
 │  ├─ BoosterScreen.tsx
 │  ├─ NotificationsScreen.tsx
 │  ├─ BalanceScreen.tsx
+│  ├─ SplashScreen.tsx
+│  ├─ LoginScreen.tsx
 │  └─ HomeDetailScreen.tsx
 ├─ components/             # 공용 컴포넌트
 │  ├─ Container.tsx
@@ -29,7 +31,9 @@ my-expo-app/
 │  └─ ui/                 # 테마 기반 UI 컴포넌트
 │     ├─ Button.tsx
 │     ├─ Card.tsx
-│     └─ Heading.tsx
+│     ├─ Heading.tsx
+│     ├─ Input.tsx
+│     └─ SegmentedTabs.tsx
 │
 ├─ components/items/       # 리스트 아이템 컴포넌트
 │  └─ CurrentPriceItem.tsx
@@ -65,6 +69,11 @@ npm run web
 - Bottom Tabs 5개(좌→우): `Home`, `Balance(잔고)`, `Booster(부스터)`, `Notifications(알림)`, `Search("테스트")`
 - 각 탭은 `screens/`에 대응되는 화면 컴포넌트를 가집니다.
 - 상단 헤더는 Native Stack을 사용해 확장 가능하며, 현재 `RootNavigator`에서 Tab을 감싸고 있습니다.
+
+- 온보딩 플로우
+  - 초기 진입: `Splash` → 1초 후 자동으로 `Login` 화면으로 이동
+  - 로그인 성공 시: `Root`(Bottom Tabs)로 전환
+  - 구현 파일: `screens/SplashScreen.tsx`, `screens/LoginScreen.tsx`, `navigation/RootNavigator.tsx`
 
 - 변경 사항
   - 검색 탭 → "테스트"로 라벨 변경
@@ -135,6 +144,28 @@ import { Heading } from 'components/ui/Heading';
   {/* 다크모드는 루트에 class="dark" 토글로 적용 가능 */}
   {/* NativeWind 유틸을 사용하므로 클래스는 className에 입력 */}
 </Card>;
+```
+
+### Input
+
+```tsx
+import { Input } from 'components/ui/Input';
+
+<Input label="계좌번호" placeholder="00000000-01" />
+```
+
+상태: helperText, error 텍스트 지원. 보안 입력은 `secureTextEntry`.
+
+### SegmentedTabs
+
+```tsx
+import { SegmentedTabs } from 'components/ui/SegmentedTabs';
+
+<SegmentedTabs
+  tabs={[{ key: 'demo', label: '모의투자' }, { key: 'real', label: '실전투자' }]}
+  value={'demo'}
+  onChange={(k) => console.log(k)}
+/>;
 ```
 
 ## 섹션/아이템 컴포넌트

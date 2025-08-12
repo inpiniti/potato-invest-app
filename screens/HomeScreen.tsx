@@ -1,10 +1,8 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '../components/ScreenContent';
 
-export default function HomeScreen() {
-  const navigation = useNavigation();
+export default function HomeScreen({ navigation }: any) {
   return (
     <View className="flex-1">
       <ScreenContent title="Home" path="screens/HomeScreen.tsx">

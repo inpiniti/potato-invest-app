@@ -10,6 +10,8 @@ import NotificationsScreen from '../screens/NotificationsScreen';
 import BoosterScreen from '../screens/BoosterScreen';
 import BalanceScreen from '../screens/BalanceScreen';
 import HomeDetailScreen from '../screens/HomeDetailScreen';
+import SplashScreen from '../screens/SplashScreen';
+import LoginScreen from '../screens/LoginScreen';
 
 export type RootTabParamList = {
   Home: undefined;
@@ -76,7 +78,9 @@ function TabNavigator() {
 export default function RootNavigator() {
   return (
     <NavigationContainer theme={MyTheme}>
-      <Stack.Navigator>
+      <Stack.Navigator initialRouteName="Splash">
+        <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Login" component={LoginScreen} options={{ title: '로그인' }} />
         <Stack.Screen name="Root" component={TabNavigator} options={{ headerShown: false }} />
         <Stack.Screen name="HomeDetail" component={HomeDetailScreen} options={{ title: '상세' }} />
       </Stack.Navigator>
