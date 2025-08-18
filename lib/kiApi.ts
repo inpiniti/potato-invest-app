@@ -8,6 +8,7 @@ const HOSTS = {
 const json = (body: unknown) => JSON.stringify(body);
 
 async function http<T>(url: string, init?: RequestInit): Promise<T> {
+  const started = Date.now();
   const res = await fetch(url, {
     ...init,
     headers: {
@@ -15,11 +16,19 @@ async function http<T>(url: string, init?: RequestInit): Promise<T> {
       ...(init?.headers || {}),
     },
   });
+  const dur = Date.now() - started;
   if (!res.ok) {
     const text = await res.text().catch(() => '');
+    if (__DEV__) {
+      console.log('[KI][HTTP][ERROR]', { url, status: res.status, statusText: res.statusText, durMs: dur, body: text.slice(0, 500) });
+    }
     throw new Error(`HTTP ${res.status} ${res.statusText}: ${text}`);
   }
-  return (await res.json()) as T;
+  const jsonBody = (await res.json()) as T;
+  if (__DEV__) {
+    console.log('[KI][HTTP][OK]', { url, status: res.status, durMs: dur });
+  }
+  return jsonBody;
 }
 
 export type TokenResponse = {
@@ -86,6 +95,30 @@ function buildHeaders(h: CommonHeader): Record<string, string> {
   };
 }
 
+function mask(v?: string | null) {
+  if (!v) return v || '';
+  if (v.length <= 8) return v[0] + '***';
+  return v.slice(0, 4) + '***' + v.slice(-3);
+}
+
+function maskHeaders(h: Record<string, string>): Record<string, string> {
+  const clone: Record<string, string> = { ...h };
+  if (clone.authorization) clone.authorization = 'Bearer ' + mask(clone.authorization.replace(/^Bearer\s+/i, ''));
+  if (clone.appkey) clone.appkey = mask(clone.appkey);
+  if (clone.appsecret) clone.appsecret = mask(clone.appsecret);
+  return clone;
+}
+
+function truncateObj(obj: any, maxLen = 1500) {
+  try {
+    const s = JSON.stringify(obj);
+    if (s.length <= maxLen) return obj;
+    return JSON.parse(s.slice(0, maxLen));
+  } catch {
+    return obj;
+  }
+}
+
 function toQuery(params: Record<string, string | number | undefined>) {
   const usp = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
@@ -136,7 +169,9 @@ export async function getOverseasRanking(opts: {
   if (__DEV__) {
     console.log('[KI][RES]', {
       trId: opts.trId,
+      headers: maskHeaders(headers),
       keys: Object.keys(res || {}),
+      sample: truncateObj((res as any)?.output2?.[0] || (res as any)?.output?.[0] || (res as any)?.output1?.[0]),
       outputTypes: {
         output: Array.isArray((res as any)?.output) ? 'array' : typeof (res as any)?.output,
         output1: Array.isArray((res as any)?.output1) ? 'array' : typeof (res as any)?.output1,
@@ -447,4 +482,230 @@ export async function getGenericRanking(params: {
     path: cfg.path,
     query: { EXCD: params.EXCD ?? 'NAS', ...(params.extraQuery || {}) },
   });
+}
+
+// ===== Overseas trading inquiries (잔고 / 기간손익 등) =====
+
+export type OverseasBalanceResponse = {
+  output1?: any; // 요약(총 평가손익 등) - 문서 상 output1, output2 혼합 형태 대비
+  output2?: any[]; // 종목별 잔고 리스트
+  [k: string]: any;
+};
+
+export type OverseasPeriodProfitResponse = {
+  output1?: any; // 요약(누적 손익 등)
+  output2?: any[]; // 일자별 / 종목별 손익 리스트 (문서 구조에 따라 상이)
+  [k: string]: any;
+};
+
+function mergeTradingOutputs(res: { output1?: any; output2?: any }): { summary: any; rows: any[] } {
+  if (!res) return { summary: null, rows: [] };
+  const summary = res.output1 ?? (Array.isArray(res.output2) ? null : undefined);
+  let rows: any[] = [];
+  if (Array.isArray(res.output2)) rows = res.output2;
+  else if (Array.isArray(res.output1)) rows = res.output1; // 혹시 반대로 오는 경우 방어
+  else if (res.output2 != null) rows = [res.output2];
+  else if (res.output1 != null && Array.isArray(res.output1) === false) rows = [res.output1];
+  return { summary, rows };
+}
+
+/** 파라미터로 전달된 계좌 문자열에서 CANO(8자리) / ACNT_PRDT_CD(2자리) 분리.
+ * 예) 12345678-01 또는 1234567801 형태 모두 지원 (단순 추정 구현)
+ */
+export function splitAccountParts(account: string): { cano: string; acntPrdtCd: string } {
+  if (!account) return { cano: '', acntPrdtCd: '' };
+  const cleaned = account.replace(/[^0-9]/g, '');
+  const cano = cleaned.slice(0, 8);
+  const acntPrdtCd = cleaned.slice(8, 10) || '01';
+  return { cano, acntPrdtCd };
+}
+
+// NOTE: 실제 TR ID 는 최신 문서 확인 필요. 아래 값들은 placeholder 로 남기며, 사용자 제공 시 교체하십시오.
+export const TRADING_TR_IDS = {
+  balance: 'PLACEHOLDER_TR_ID_BALANCE', // e.g., HHDFS76200200 (확인 필요)
+  periodProfit: 'PLACEHOLDER_TR_ID_PERIOD_PROFIT',
+  executions: 'PLACEHOLDER_TR_ID_EXECUTIONS',
+} as const;
+
+// 해외잔고 조회 기본 쿼리 파라미터 (문서 기준 필수 + 권장). 실제 필요 항목은 최신 문서를 확인하십시오.
+// - OVRS_EXCG_CD: 해외거래소 (예: NASD, NYSE, AMEX 등) 공란 시 전체 (계좌권한 따라 상이)
+// - TR_CRCY_CD: 거래통화 (USD 등)
+// - AFHR_FLPR_YN: 시간외포함 여부 (N 기본)
+// - FUND_STTL_ICLD_YN: 펀드결제분포함 여부 (Y 권장)
+// - FNCG_AMT_AUTO_RDPT_YN: 융자금액자동상환 여부 (N 기본)
+// - PRCS_DVSN_CD: 처리구분 (00 기본)
+// - CTX_AREA_FK200 / CTX_AREA_NK200: 페이징 커서 (첫 조회는 공란)
+export async function getOverseasBalance(params: {
+  env: Env;
+  accessToken: string;
+  appkey: string;
+  appsecret: string;
+  cano: string; // 계좌번호 8자리
+  acntPrdtCd: string; // 상품 코드 2자리 (일반 01)
+  trId?: string; // override 가능
+  extraQuery?: Partial<Record<string, string | undefined>>; // OVRS_EXCG_CD, CTX_AREA_FK200 등 override
+}): Promise<OverseasBalanceResponse & { _merged?: { summary: any; rows: any[] } }> {
+  const base = HOSTS[params.env];
+  // 실전: TTTS3012R / 모의: VTTS3012R (문서 기준 잔고 조회 TR)
+  const trId = params.trId || (params.env === 'real' ? 'TTTS3012R' : 'VTTS3012R');
+  const headers = buildHeaders({
+    env: params.env,
+    appkey: params.appkey,
+    appsecret: params.appsecret,
+    accessToken: params.accessToken,
+    trId,
+  });
+  // 필수(Y) 파라미터만 구성: CANO, ACNT_PRDT_CD, OVRS_EXCG_CD, TR_CRCY_CD, CTX_AREA_FK200, CTX_AREA_NK200
+  // 실전 env: 나스닥 단일코드 NAS (미국전체), 모의 env: 나스닥 NASD (문서 표기)
+  const defaultExchange = params.env === 'real' ? 'NAS' : 'NASD';
+  const defaultQuery: Record<string, string | undefined> = {
+    CANO: params.cano,
+    ACNT_PRDT_CD: params.acntPrdtCd,
+    OVRS_EXCG_CD: defaultExchange,
+    TR_CRCY_CD: 'USD',
+    CTX_AREA_FK200: '',
+    CTX_AREA_NK200: '',
+  };
+  // extraQuery 에 undefined 가 들어오면 기본값을 덮어써 빠지는 문제가 있어 필터링
+  const extraFiltered: Record<string, string> = {};
+  if (params.extraQuery) {
+    Object.entries(params.extraQuery).forEach(([k, v]) => {
+      if (v !== undefined) extraFiltered[k] = String(v);
+    });
+  }
+  const mergedQuery = { ...defaultQuery, ...extraFiltered } as Record<string, string | undefined>;
+  const q = toQuery(mergedQuery);
+  const url = `${base}/uapi/overseas-stock/v1/trading/inquire-balance?${q}`;
+  if (__DEV__) console.log('[KI][GET][balance]', { url, mergedQuery });
+  const res = await http<OverseasBalanceResponse>(url, { method: 'GET', headers });
+  if (__DEV__) {
+    const rowCount = Array.isArray((res as any)?.output2) ? (res as any).output2.length : 0;
+    const msg = {
+      headers: maskHeaders(headers),
+      query: mergedQuery,
+      keys: Object.keys(res || {}),
+      summaryKeys: Object.keys((res as any)?.output1 || {}),
+      rowCount,
+      rt_cd: (res as any)?.rt_cd,
+      msg_cd: (res as any)?.msg_cd,
+      msg1: (res as any)?.msg1,
+      sample: truncateObj((res as any)?.output2?.[0] || (res as any)?.output1),
+    };
+    // output1/output2 가 전혀 없고 에러코드 형태라면 전체 응답을 더 짧게 덤프
+    if (!rowCount && !(res as any)?.output1 && !(res as any)?.output2) {
+      (msg as any).raw = truncateObj(res);
+    }
+    console.log('[KI][RES][balance]', msg);
+  }
+  const merged = mergeTradingOutputs(res);
+  return { ...res, _merged: merged };
+}
+
+// 기간손익 조회 기본 파라미터 예시 (필드명은 해외/국내/계좌유형에 따라 다를 수 있음)
+// - START_DT / END_DT (또는 INQR_STRT_DT / INQR_END_DT): 조회기간
+// - OVRS_EXCG_CD: 해외거래소 (전체 조회 시 공란 허용 여부 문서 확인)
+// - TR_CRCY_CD: 기준 통화 (USD)
+// - INQR_DVSN_CD: 조회구분 (00: 기본) / SLL_BUY_DVSN_CD: 매매구분 전체 00 등
+// - CTX_AREA_FK200 / CTX_AREA_NK200: 페이징 커서
+export async function getOverseasPeriodProfit(params: {
+  env: Env;
+  accessToken: string;
+  appkey: string;
+  appsecret: string;
+  cano: string;
+  acntPrdtCd: string;
+  startDate: string; // YYYYMMDD
+  endDate: string; // YYYYMMDD
+  trId?: string;
+  extraQuery?: Partial<Record<string, string | undefined>>;
+}): Promise<OverseasPeriodProfitResponse & { _merged?: { summary: any; rows: any[] } }> {
+  const base = HOSTS[params.env];
+  const trId = params.trId || TRADING_TR_IDS.periodProfit;
+  const headers = buildHeaders({
+    env: params.env,
+    appkey: params.appkey,
+    appsecret: params.appsecret,
+    accessToken: params.accessToken,
+    trId,
+  });
+  const defaultQuery = {
+    CANO: params.cano,
+    ACNT_PRDT_CD: params.acntPrdtCd,
+    START_DT: params.startDate,
+    END_DT: params.endDate,
+    OVRS_EXCG_CD: 'NASD',
+    TR_CRCY_CD: 'USD',
+    INQR_DVSN_CD: '00',
+    SLL_BUY_DVSN_CD: '00',
+    CTX_AREA_FK200: '',
+    CTX_AREA_NK200: '',
+  } as Record<string, string | undefined>;
+  const q = toQuery({ ...defaultQuery, ...(params.extraQuery || {}) });
+  const url = `${base}/uapi/overseas-stock/v1/trading/inquire-period-profit?${q}`;
+  if (__DEV__) console.log('[KI][GET][period-profit]', { url, q });
+  const res = await http<OverseasPeriodProfitResponse>(url, { method: 'GET', headers });
+  if (__DEV__) {
+    console.log('[KI][RES][period-profit]', {
+      headers: maskHeaders(headers),
+      keys: Object.keys(res || {}),
+      summaryKeys: Object.keys((res as any)?.output1 || {}),
+      rowCount: Array.isArray((res as any)?.output2) ? (res as any).output2.length : 0,
+      sample: truncateObj((res as any)?.output2?.[0] || (res as any)?.output1),
+    });
+  }
+  const merged = mergeTradingOutputs(res);
+  return { ...res, _merged: merged };
+}
+
+export type MergedTradingData = { summary: any; rows: any[] };
+
+export async function getOverseasExecutions(params: {
+  env: Env;
+  accessToken: string;
+  appkey: string;
+  appsecret: string;
+  cano: string;
+  acntPrdtCd: string;
+  startDate?: string; // 선택적 기간 필터 (문서 확인 필요)
+  endDate?: string;
+  trId?: string;
+  extraQuery?: Partial<Record<string, string | undefined>>;
+}): Promise<{ output1?: any; output2?: any[]; _merged?: { summary: any; rows: any[] } }> {
+  const base = HOSTS[params.env];
+  const trId = params.trId || TRADING_TR_IDS.executions;
+  const headers = buildHeaders({
+    env: params.env,
+    appkey: params.appkey,
+    appsecret: params.appsecret,
+    accessToken: params.accessToken,
+    trId,
+  });
+  const defaultQuery = {
+    CANO: params.cano,
+    ACNT_PRDT_CD: params.acntPrdtCd,
+    START_DT: params.startDate,
+    END_DT: params.endDate,
+    OVRS_EXCG_CD: 'NASD',
+    TR_CRCY_CD: 'USD',
+    SLL_BUY_DVSN_CD: '00',
+    INQR_DVSN_CD: '00',
+    CTX_AREA_FK200: '',
+    CTX_AREA_NK200: '',
+  } as Record<string, string | undefined>;
+  const q = toQuery({ ...defaultQuery, ...(params.extraQuery || {}) });
+  // NOTE: 경로는 문서 확인 필요. 임시로 inquire-executions 사용.
+  const url = `${base}/uapi/overseas-stock/v1/trading/inquire-executions?${q}`;
+  if (__DEV__) console.log('[KI][GET][executions]', { url, q });
+  const res = await http<any>(url, { method: 'GET', headers });
+  if (__DEV__) {
+    console.log('[KI][RES][executions]', {
+      headers: maskHeaders(headers),
+      keys: Object.keys(res || {}),
+      summaryKeys: Object.keys((res as any)?.output1 || {}),
+      rowCount: Array.isArray((res as any)?.output2) ? (res as any).output2.length : 0,
+      sample: truncateObj((res as any)?.output2?.[0] || (res as any)?.output1),
+    });
+  }
+  const merged = mergeTradingOutputs(res);
+  return { ...res, _merged: merged };
 }

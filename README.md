@@ -1,4 +1,4 @@
-## 해외주식 순위 조회 추가 (React Query, 1분 자동 갱신)
+## 해외주식 순위 조회 추가 (React Query, 수동 Reload 갱신)
 
 한국투자 Open API의 해외주식 시세분석 순위 일부를 조회하는 훅과 화면 구성을 추가했습니다.
 
@@ -11,7 +11,7 @@
   - 고객타입(custtype): P (개인)
   - Authorization: 로그인으로 발급받은 Access Token 사용
   - appkey/appsecret: 로그인 입력값 재사용
-- 주기: 1분 간격으로 자동 재조회 (React Query refetchInterval)
+- 초기 1회 조회 후 자동 주기 갱신은 비활성 (refetchInterval 사용 안함). 각 섹션 왼쪽 Reload 버튼 클릭 시 재조회.
 
 참고: 문서에 따르면 위 3개 순위 API는 모의투자 미지원입니다. 데모 환경(env=demo)에서는 호출 실패할 수 있으니 실환경(env=real)에서 테스트하세요.
 
@@ -26,8 +26,8 @@
   - `usePriceFluctRanking`, `useVolumeSurgeRanking`, `useVolumePowerRanking`
   - 결과는 공통 형태로 정규화하여 화면에서 바로 렌더링
 - 화면: `screens/SearchScreen.tsx`
-  - "가격 급등 상위", "거래량 급증 상위", "매수 체결강도 상위" 섹션 추가
-  - 로딩/에러/데이터 표시 및 1분 자동 갱신 표시
+  - 여러 순위/테스트(잔고/기간손익/체결) 섹션 및 Reload 버튼 표시
+  - 로딩/빈데이터/에러 메시지 + 수동 Reload
 
 ### 데이터/상태 폴더 구조 (store/hook/api)
 
@@ -56,7 +56,7 @@
 
 - `hooks/`
   - 인증: `hooks/useKIAuth.ts` (토큰·승인키 발급), `hooks/useKIWebSocket.ts` (WS 접속 정보 준비 예시)
-  - 순위: `hooks/useKIRanking.ts` (React Query + 1분 refetchInterval)
+  - 순위: `hooks/useKIRanking.ts` (React Query, 수동 refetch)
     - 제공 훅(모두 EXCD=NAS 기본값):
       - `usePriceFluctRanking`, `useVolumeSurgeRanking`, `useVolumePowerRanking`
       - `useUpRateRanking`, `useDownRateRanking`, `useNewHighRanking`, `useNewLowRanking`
@@ -72,7 +72,7 @@
 
 1. 로그인 화면에서 App Key, Secret Key 입력 후 토큰 발급까지 정상 완료.
 2. 하단 탭의 "테스트"(Search)로 이동.
-3. 위 3개 섹션이 1분마다 자동 갱신되며 상위 결과가 나열됩니다.
+3. 각 섹션 좌측 Reload(새로고침 아이콘) 버튼을 눌러 수동 재조회할 수 있습니다.
 
 ### 확장 예정
 
@@ -329,6 +329,8 @@ npm i zustand @react-native-async-storage/async-storage
 - `lib/kiApi.ts`: 토큰/승인키 발급 API 클라이언트
 - `hooks/useKIAuth.ts`: 로그인 절차(토큰 → 승인키) 훅
 - `hooks/useKIWebSocket.ts`: 승인키/WS 접속 정보 준비 훅(예시)
+ - `hooks/useKIRanking.ts`: 해외 순위(가격 급등, 거래량 급증 등) 조회 훅
+ - `hooks/useKITrading.ts`: 해외 잔고/기간손익 조회 훅 (TR ID placeholder 상태)
 
 사용(로그인)
 
@@ -364,6 +366,78 @@ LoginScreen
 
 - 실제 운영 접속 URL/파라미터는 상품 문서 최신본을 확인하세요. 기관/계정별 제약이 있을 수 있습니다.
 - WebSocket 실제 구독 URL/프로토콜은 서비스에 따라 상이할 수 있어 hook에는 예시만 포함했습니다.
+
+### 해외 순위 랭킹 훅 요약
+
+`usePriceFluctRanking`, `useVolumeSurgeRanking`, `useVolumePowerRanking`, `useUpRateRanking`, `useDownRateRanking`, `useNewHighRanking`, `useNewLowRanking`, `useTradeVolRanking`, `useTradePbmnRanking`, `useTradeGrowthRanking`, `useTradeTurnoverRanking`, `useMarketCapRanking`
+
+모든 랭킹 API 는 응답 내 `output1`(요약/헤더), `output2`(리스트) 형태일 수 있어 내부에서 `output2`를 우선 병합합니다.
+
+### 해외 잔고 / 기간손익 조회
+
+문서상 잔고(inquire-balance), 기간손익(inquire-period-profit) 엔드포인트를 위한 기초 훅/헬퍼가 추가되었습니다.
+
+구현 파일:
+
+- `lib/kiApi.ts` 내 `getOverseasBalance`, `getOverseasPeriodProfit`, `splitAccountParts`
+- `hooks/useKITrading.ts` 내 `useOverseasBalance`, `useOverseasPeriodProfit`, `useOverseasExecutions`
+
+TR ID 는 실제 문서의 최신 값을 확인 후 `TRADING_TR_IDS` 상수의 placeholder 를 교체해야 합니다.
+
+사용 예시:
+
+```tsx
+import { useOverseasBalance, useOverseasPeriodProfit } from 'hooks/useKITrading';
+
+function BalanceWidget() {
+  // 특정 해외거래소 / 통화 선택 (기본 NASD / USD). exchange, currency 생략 시 내부 defaultQuery 값 사용.
+  const bal = useOverseasBalance({ exchange: 'NASD', currency: 'USD' });
+  if (bal.isPending) return <Text>불러오는 중…</Text>;
+  if (bal.error) return <Text>오류: {String(bal.error)}</Text>;
+  return (
+    <View>
+      <Text>종목수: {bal.data.rows.length}</Text>
+      <Text>총 평가손익: {bal.data.summary?.evlu_pfls_amt}</Text>
+    </View>
+  );
+}
+
+function PeriodProfitWidget() {
+  const profit = useOverseasPeriodProfit({ start: '20250101', end: '20250131', exchange: 'NASD', currency: 'USD' });
+  if (profit.isPending) return <Text>불러오는 중…</Text>;
+  if (profit.error) return <Text>오류: {String(profit.error)}</Text>;
+  return (
+    <View>
+      <Text>레코드 수: {profit.data.rows.length}</Text>
+      <Text>누적 손익: {profit.data.summary?.pft_amt}</Text>
+    </View>
+  );
+}
+```
+
+추가/변경 사항:
+
+- 잔고/기간손익/체결 API 호출 시 기본 쿼리에 다음 필드가 포함되도록 수정: `OVRS_EXCG_CD(NASD)`, `TR_CRCY_CD(USD)`, `AFHR_FLPR_YN(N)`, `FUND_STTL_ICLD_YN(Y)`, `FNCG_AMT_AUTO_RDPT_YN(N)`, `PRCS_DVSN_CD(00)`, `INQR_DVSN_CD(00)`, `SLL_BUY_DVSN_CD(00)` 및 페이징 커서 `CTX_AREA_FK200/NK200`.
+- 훅 옵션으로 `exchange`, `currency` 전달 시 해당 기본값 override.
+- 아직 TR ID / 경로 placeholder 인 `executions` 는 실제 문서의 `/inquire-ccnl` 등 확인 후 교체 필요.
+
+계좌번호 파싱:
+
+```ts
+const { cano, acntPrdtCd } = splitAccountParts('12345678-01'); // { cano: '12345678', acntPrdtCd: '01' }
+```
+
+병합 로직:
+
+- 잔고/기간손익 응답 또한 `output1`, `output2` 혼합 가능 → `mergeTradingOutputs` 로 summary/rows 분리.
+- `output2` 가 배열이면 리스트, `output1` 은 요약으로 간주. 구조 역전 시도 대비 fallback 포함.
+- 체결내역(Executions) 역시 동일한 병합 로직 재사용 (TR ID / 경로 placeholder)
+
+리스크 & TODO:
+
+- 실제 TR ID 확인 필요 (`TRADING_TR_IDS` placeholder)
+- 필드 이름(손익/수량 등)은 계정/상품 유형별 변동 가능 → UI 사용 전 실제 응답 shape 콘솔 확인 권장
+- 기간손익 API 의 응답 구조(일자 vs 종목별)는 문서/계정 권한에 따라 다를 수 있음 → 후속 세분화 필요
 
 ## Design Theme (Toss Invest inspired)
 

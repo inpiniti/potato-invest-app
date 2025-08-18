@@ -113,7 +113,7 @@ function normalizeRows(rows: any[]): NormalizedRow[] {
   return mapped;
 }
 
-const ONE_MIN = 60_000;
+// 자동 간격 갱신 대신 화면 포커스 시 refetch
 
 export function usePriceFluctRanking() {
   const { env, appKey, secretKey, tokens } = useAuthStore();
@@ -130,8 +130,8 @@ export function usePriceFluctRanking() {
         MIXN: '0', // 1분전 기준
         VOL_RANG: '0', // 전체
       }),
-    enabled: Boolean(tokens.accessToken && appKey && secretKey),
-    refetchInterval: ONE_MIN,
+  enabled: Boolean(tokens.accessToken && appKey && secretKey),
+  refetchInterval: false,
     select: (res) => normalizeRows(mergeOutputs(res)),
   });
 }
@@ -148,8 +148,8 @@ export function useVolumeSurgeRanking() {
         appsecret: secretKey,
         EXCD: 'NAS',
       }),
-    enabled: Boolean(tokens.accessToken && appKey && secretKey),
-    refetchInterval: ONE_MIN,
+  enabled: Boolean(tokens.accessToken && appKey && secretKey),
+  refetchInterval: false,
     select: (res) => normalizeRows(mergeOutputs(res)),
   });
 }
@@ -169,7 +169,7 @@ export function useVolumePowerRanking() {
         VOL_RANG: '0',
       }),
     enabled: Boolean(tokens.accessToken && appKey && secretKey),
-    refetchInterval: ONE_MIN,
+  refetchInterval: false,
     select: (res) => normalizeRows(mergeOutputs(res)),
   });
 }
@@ -191,7 +191,7 @@ export function useUpRateRanking() {
         VOL_RANG: '0',
       }),
     enabled: Boolean(tokens.accessToken && appKey && secretKey),
-    refetchInterval: ONE_MIN,
+  refetchInterval: false,
     select: (res) => normalizeRows(mergeOutputs(res)),
   });
 }
@@ -212,7 +212,7 @@ export function useDownRateRanking() {
         VOL_RANG: '0',
       }),
     enabled: Boolean(tokens.accessToken && appKey && secretKey),
-    refetchInterval: ONE_MIN,
+  refetchInterval: false,
     select: (res) => normalizeRows(mergeOutputs(res)),
   });
 }
@@ -235,7 +235,7 @@ export function useNewHighRanking() {
         GUBN2: '1',
       }),
     enabled: Boolean(tokens.accessToken && appKey && secretKey),
-    refetchInterval: ONE_MIN,
+  refetchInterval: false,
     select: (res) => normalizeRows(mergeOutputs(res)),
   });
 }
@@ -257,7 +257,7 @@ export function useNewLowRanking() {
         GUBN2: '1',
       }),
     enabled: Boolean(tokens.accessToken && appKey && secretKey),
-    refetchInterval: ONE_MIN,
+  refetchInterval: false,
     select: (res) => normalizeRows(mergeOutputs(res)),
   });
 }
@@ -278,7 +278,7 @@ export function useTradeVolRanking() {
         VOL_RANG: '0',
       }),
     enabled: Boolean(tokens.accessToken && appKey && secretKey),
-    refetchInterval: ONE_MIN,
+  refetchInterval: false,
     select: (res) => normalizeRows(mergeOutputs(res)),
   });
 }
@@ -299,7 +299,7 @@ export function useTradePbmnRanking() {
         VOL_RANG: '0',
       }),
     enabled: Boolean(tokens.accessToken && appKey && secretKey),
-    refetchInterval: ONE_MIN,
+  refetchInterval: false,
     select: (res) => normalizeRows(mergeOutputs(res)),
   });
 }
@@ -320,7 +320,7 @@ export function useTradeGrowthRanking() {
         VOL_RANG: '0',
       }),
     enabled: Boolean(tokens.accessToken && appKey && secretKey),
-    refetchInterval: ONE_MIN,
+  refetchInterval: false,
     select: (res) => normalizeRows(mergeOutputs(res)),
   });
 }
@@ -341,7 +341,7 @@ export function useTradeTurnoverRanking() {
         VOL_RANG: '0',
       }),
     enabled: Boolean(tokens.accessToken && appKey && secretKey),
-    refetchInterval: ONE_MIN,
+  refetchInterval: false,
     select: (res) => normalizeRows(mergeOutputs(res)),
   });
 }
@@ -360,8 +360,8 @@ export function useMarketCapRanking() {
         EXCD: 'NAS',
         VOL_RANG: '0',
       }),
-    enabled: Boolean(tokens.accessToken && appKey && secretKey),
-    refetchInterval: ONE_MIN,
+  enabled: Boolean(tokens.accessToken && appKey && secretKey),
+  refetchInterval: false,
     select: (res) => normalizeRows(mergeOutputs(res)),
   });
 }

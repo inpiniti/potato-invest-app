@@ -21,6 +21,11 @@ import {
   useTradeTurnoverRanking,
   useMarketCapRanking,
 } from '../hooks/useKIRanking';
+import {
+  useOverseasBalance,
+  useOverseasPeriodProfit,
+  useOverseasExecutions,
+} from '../hooks/useKITrading';
 
 export default function SearchScreen() {
   const { account, appKey, secretKey, tokens } = useAuthStore();
@@ -36,6 +41,12 @@ export default function SearchScreen() {
   const tradeGrowth = useTradeGrowthRanking();
   const tradeTurnover = useTradeTurnoverRanking();
   const marketCap = useMarketCapRanking();
+  // forceReal: 실전 환경 잔고 호출 테스트 (실전 키/계좌 권한이 있어야 정상 동작)
+  const balance = useOverseasBalance({ forceReal: true });
+  const periodProfit = useOverseasPeriodProfit();
+  const executions = useOverseasExecutions();
+
+  // 초기 진입 시 React Query가 enabled true 조건으로 1회 조회 (refetchInterval 없음)
 
   return (
     <View className="flex-1 bg-neutral-100">
@@ -53,11 +64,134 @@ export default function SearchScreen() {
 
           <View className="w-full">
             <Section
-              title="가격 급등 상위 (NASDAQ, 1분 기준)"
-              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
-              {priceFluct.isPending && (
-                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
+              title="(테스트) 해외 잔고 조회"
+              onReload={() => balance.refetch()}
+              reloading={balance.isFetching}
+              loading={balance.isPending}
+              empty={
+                !balance.isPending && !balance.error && (balance.data?.rows?.length ?? 0) === 0
+              }
+              footer={
+                <Text className="text-center text-muted-foreground">
+                  Reload 버튼으로 재조회 (TR ID placeholder, NASD/USD)
+                </Text>
+              }>
+              {balance.error && (
+                <Text className="px-5 py-3 text-center text-destructive">
+                  오류: {String(balance.error)}
+                </Text>
               )}
+              {balance.data?.rows?.slice?.(0, 10)?.map((row: any, idx: number) => (
+                <CurrentPriceItem
+                  key={idx}
+                  rank={idx + 1}
+                  ticker={row?.ovrs_pdno}
+                  name={
+                    (row?.ovrs_pdno || '') +
+                    ' (' +
+                    (row?.ovrs_item_name || row?.name || row?.itnm || '') +
+                    ')'
+                  }
+                  price={`${row?.pchs_avg_pric} (${row?.ovrs_cblc_qty})`}
+                  change={`${row?.evlu_pfls_rt}%`}
+                  changePositive={Number(row?.evlu_erng_rt) >= 0}
+                />
+              ))}
+            </Section>
+          </View>
+
+          <View className="w-full">
+            <Section
+              title="(테스트) 해외 기간손익"
+              onReload={() => periodProfit.refetch()}
+              reloading={periodProfit.isFetching}
+              loading={periodProfit.isPending}
+              empty={
+                !periodProfit.isPending &&
+                !periodProfit.error &&
+                (periodProfit.data?.rows?.length ?? 0) === 0
+              }
+              footer={
+                <Text className="text-center text-muted-foreground">
+                  Reload 버튼으로 재조회 (TR ID placeholder, NASD/USD)
+                </Text>
+              }>
+              {periodProfit.error && (
+                <Text className="px-5 py-3 text-center text-destructive">
+                  오류: {String(periodProfit.error)}
+                </Text>
+              )}
+              {periodProfit.data?.rows?.slice?.(0, 10)?.map((row: any, idx: number) => (
+                <CurrentPriceItem
+                  key={idx}
+                  rank={idx + 1}
+                  ticker={row?.symb || row?.rsym || row?.ovrs_item_cd}
+                  name={
+                    (row?.symb || '') +
+                    ' (' +
+                    (row?.ovrs_item_name || row?.name || row?.itnm || '') +
+                    ')'
+                  }
+                  price={String(row?.evlu_pfls_amt ?? row?.pft_amt ?? row?.ord_psbl_qty ?? '')}
+                  change={String(row?.evlu_erng_rt ?? row?.pft_rt ?? '')}
+                  changePositive={Number(row?.evlu_erng_rt ?? row?.pft_rt) >= 0}
+                />
+              ))}
+            </Section>
+          </View>
+
+          <View className="w-full">
+            <Section
+              title="(테스트) 해외 체결내역"
+              onReload={() => executions.refetch()}
+              reloading={executions.isFetching}
+              loading={executions.isPending}
+              empty={
+                !executions.isPending &&
+                !executions.error &&
+                (executions.data?.rows?.length ?? 0) === 0
+              }
+              footer={
+                <Text className="text-center text-muted-foreground">
+                  Reload 버튼으로 재조회 (TR ID placeholder, NASD/USD)
+                </Text>
+              }>
+              {executions.error && (
+                <Text className="px-5 py-3 text-center text-destructive">
+                  오류: {String(executions.error)}
+                </Text>
+              )}
+              {executions.data?.rows?.slice?.(0, 10)?.map((row: any, idx: number) => (
+                <CurrentPriceItem
+                  key={idx}
+                  rank={idx + 1}
+                  ticker={row?.symb || row?.rsym || row?.ovrs_item_cd}
+                  name={
+                    (row?.symb || '') +
+                    ' (' +
+                    (row?.ovrs_item_name || row?.name || row?.itnm || '') +
+                    ')'
+                  }
+                  price={String(row?.prc || row?.price || row?.ord_prc || '')}
+                  change={String(row?.qty || row?.ord_qty || '')}
+                  changePositive={true}
+                />
+              ))}
+            </Section>
+          </View>
+
+          <View className="w-full">
+            <Section
+              title="가격 급등 상위 (NASDAQ)"
+              onReload={() => priceFluct.refetch()}
+              reloading={priceFluct.isFetching}
+              loading={priceFluct.isPending}
+              empty={
+                !priceFluct.isPending && !priceFluct.error && (priceFluct.data?.length ?? 0) === 0
+              }
+              footer={
+                <Text className="text-center text-muted-foreground">Reload 버튼으로 재조회</Text>
+              }>
               {priceFluct.error && (
                 <Text className="px-5 py-3 text-center text-destructive">
                   오류: {String(priceFluct.error)}
@@ -80,10 +214,17 @@ export default function SearchScreen() {
           <View className="w-full">
             <Section
               title="거래량 급증 상위 (NASDAQ)"
-              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
-              {volumeSurge.isPending && (
-                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
-              )}
+              onReload={() => volumeSurge.refetch()}
+              reloading={volumeSurge.isFetching}
+              loading={volumeSurge.isPending}
+              empty={
+                !volumeSurge.isPending &&
+                !volumeSurge.error &&
+                (volumeSurge.data?.length ?? 0) === 0
+              }
+              footer={
+                <Text className="text-center text-muted-foreground">Reload 버튼으로 재조회</Text>
+              }>
               {volumeSurge.error && (
                 <Text className="px-5 py-3 text-center text-destructive">
                   오류: {String(volumeSurge.error)}
@@ -106,10 +247,17 @@ export default function SearchScreen() {
           <View className="w-full">
             <Section
               title="매수 체결강도 상위 (NASDAQ)"
-              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
-              {volumePower.isPending && (
-                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
-              )}
+              onReload={() => volumePower.refetch()}
+              reloading={volumePower.isFetching}
+              loading={volumePower.isPending}
+              empty={
+                !volumePower.isPending &&
+                !volumePower.error &&
+                (volumePower.data?.length ?? 0) === 0
+              }
+              footer={
+                <Text className="text-center text-muted-foreground">Reload 버튼으로 재조회</Text>
+              }>
               {volumePower.error && (
                 <Text className="px-5 py-3 text-center text-destructive">
                   오류: {String(volumePower.error)}
@@ -132,10 +280,13 @@ export default function SearchScreen() {
           <View className="w-full">
             <Section
               title="상승률 상위 (NASDAQ)"
-              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
-              {upRate.isPending && (
-                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
-              )}
+              onReload={() => upRate.refetch()}
+              reloading={upRate.isFetching}
+              loading={upRate.isPending}
+              empty={!upRate.isPending && !upRate.error && (upRate.data?.length ?? 0) === 0}
+              footer={
+                <Text className="text-center text-muted-foreground">Reload 버튼으로 재조회</Text>
+              }>
               {upRate.error && (
                 <Text className="px-5 py-3 text-center text-destructive">
                   오류: {String(upRate.error)}
@@ -158,10 +309,13 @@ export default function SearchScreen() {
           <View className="w-full">
             <Section
               title="하락률 상위 (NASDAQ)"
-              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
-              {downRate.isPending && (
-                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
-              )}
+              onReload={() => downRate.refetch()}
+              reloading={downRate.isFetching}
+              loading={downRate.isPending}
+              empty={!downRate.isPending && !downRate.error && (downRate.data?.length ?? 0) === 0}
+              footer={
+                <Text className="text-center text-muted-foreground">Reload 버튼으로 재조회</Text>
+              }>
               {downRate.error && (
                 <Text className="px-5 py-3 text-center text-destructive">
                   오류: {String(downRate.error)}
@@ -184,10 +338,13 @@ export default function SearchScreen() {
           <View className="w-full">
             <Section
               title="신고가 (NASDAQ)"
-              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
-              {newHigh.isPending && (
-                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
-              )}
+              onReload={() => newHigh.refetch()}
+              reloading={newHigh.isFetching}
+              loading={newHigh.isPending}
+              empty={!newHigh.isPending && !newHigh.error && (newHigh.data?.length ?? 0) === 0}
+              footer={
+                <Text className="text-center text-muted-foreground">Reload 버튼으로 재조회</Text>
+              }>
               {newHigh.error && (
                 <Text className="px-5 py-3 text-center text-destructive">
                   오류: {String(newHigh.error)}
@@ -210,10 +367,13 @@ export default function SearchScreen() {
           <View className="w-full">
             <Section
               title="신저가 (NASDAQ)"
-              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
-              {newLow.isPending && (
-                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
-              )}
+              onReload={() => newLow.refetch()}
+              reloading={newLow.isFetching}
+              loading={newLow.isPending}
+              empty={!newLow.isPending && !newLow.error && (newLow.data?.length ?? 0) === 0}
+              footer={
+                <Text className="text-center text-muted-foreground">Reload 버튼으로 재조회</Text>
+              }>
               {newLow.error && (
                 <Text className="px-5 py-3 text-center text-destructive">
                   오류: {String(newLow.error)}
@@ -236,10 +396,13 @@ export default function SearchScreen() {
           <View className="w-full">
             <Section
               title="거래량 순위 (NASDAQ)"
-              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
-              {tradeVol.isPending && (
-                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
-              )}
+              onReload={() => tradeVol.refetch()}
+              reloading={tradeVol.isFetching}
+              loading={tradeVol.isPending}
+              empty={!tradeVol.isPending && !tradeVol.error && (tradeVol.data?.length ?? 0) === 0}
+              footer={
+                <Text className="text-center text-muted-foreground">Reload 버튼으로 재조회</Text>
+              }>
               {tradeVol.error && (
                 <Text className="px-5 py-3 text-center text-destructive">
                   오류: {String(tradeVol.error)}
@@ -262,10 +425,15 @@ export default function SearchScreen() {
           <View className="w-full">
             <Section
               title="거래대금 순위 (NASDAQ)"
-              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
-              {tradePbmn.isPending && (
-                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
-              )}
+              onReload={() => tradePbmn.refetch()}
+              reloading={tradePbmn.isFetching}
+              loading={tradePbmn.isPending}
+              empty={
+                !tradePbmn.isPending && !tradePbmn.error && (tradePbmn.data?.length ?? 0) === 0
+              }
+              footer={
+                <Text className="text-center text-muted-foreground">Reload 버튼으로 재조회</Text>
+              }>
               {tradePbmn.error && (
                 <Text className="px-5 py-3 text-center text-destructive">
                   오류: {String(tradePbmn.error)}
@@ -288,10 +456,17 @@ export default function SearchScreen() {
           <View className="w-full">
             <Section
               title="거래 증가율 순위 (NASDAQ)"
-              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
-              {tradeGrowth.isPending && (
-                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
-              )}
+              onReload={() => tradeGrowth.refetch()}
+              reloading={tradeGrowth.isFetching}
+              loading={tradeGrowth.isPending}
+              empty={
+                !tradeGrowth.isPending &&
+                !tradeGrowth.error &&
+                (tradeGrowth.data?.length ?? 0) === 0
+              }
+              footer={
+                <Text className="text-center text-muted-foreground">Reload 버튼으로 재조회</Text>
+              }>
               {tradeGrowth.error && (
                 <Text className="px-5 py-3 text-center text-destructive">
                   오류: {String(tradeGrowth.error)}
@@ -314,10 +489,17 @@ export default function SearchScreen() {
           <View className="w-full">
             <Section
               title="거래 회전율 순위 (NASDAQ)"
-              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
-              {tradeTurnover.isPending && (
-                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
-              )}
+              onReload={() => tradeTurnover.refetch()}
+              reloading={tradeTurnover.isFetching}
+              loading={tradeTurnover.isPending}
+              empty={
+                !tradeTurnover.isPending &&
+                !tradeTurnover.error &&
+                (tradeTurnover.data?.length ?? 0) === 0
+              }
+              footer={
+                <Text className="text-center text-muted-foreground">Reload 버튼으로 재조회</Text>
+              }>
               {tradeTurnover.error && (
                 <Text className="px-5 py-3 text-center text-destructive">
                   오류: {String(tradeTurnover.error)}
@@ -340,10 +522,15 @@ export default function SearchScreen() {
           <View className="w-full">
             <Section
               title="시가총액 순위 (NASDAQ)"
-              footer={<Text className="text-center text-muted-foreground">1분마다 자동 갱신</Text>}>
-              {marketCap.isPending && (
-                <Text className="px-5 py-3 text-center text-muted-foreground">불러오는 중…</Text>
-              )}
+              onReload={() => marketCap.refetch()}
+              reloading={marketCap.isFetching}
+              loading={marketCap.isPending}
+              empty={
+                !marketCap.isPending && !marketCap.error && (marketCap.data?.length ?? 0) === 0
+              }
+              footer={
+                <Text className="text-center text-muted-foreground">Reload 버튼으로 재조회</Text>
+              }>
               {marketCap.error && (
                 <Text className="px-5 py-3 text-center text-destructive">
                   오류: {String(marketCap.error)}
