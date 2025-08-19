@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, ViewProps } from 'react-native';
+import { View, Text, ViewProps, TouchableOpacity } from 'react-native';
 import { getLogoByTicker } from '../../logoData';
 import { LogoSvg } from '../ui/LogoSvg';
+import { Ionicons } from '@expo/vector-icons';
+import { useBoosterStore, useIsBoosted } from '../../stores/booster';
 
 export type CurrentPriceItemProps = ViewProps & {
   ticker?: string;
@@ -28,6 +30,8 @@ export const CurrentPriceItem = ({
 }: CurrentPriceItemProps) => {
   const logo = getLogoByTicker(ticker);
   const logoUri = logo ? `https://s3-symbol-logo.tradingview.com/${logo.logoid}--big.svg` : null;
+  const boosted = useIsBoosted(ticker);
+  const toggle = useBoosterStore((s) => s.toggle);
   return (
     <View className={`flex-row items-center justify-between p-2 ${className}`} {...rest}>
       <View className="mr-3 items-center" style={{ width: 36 }}>
@@ -60,7 +64,23 @@ export const CurrentPriceItem = ({
           </View>
         </View>
       </View>
-      <View className="ml-3 flex-row items-center">{suffix}</View>
+      <View className="ml-2 flex-row items-center">
+        {suffix}
+        {ticker ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={boosted ? '부스터 해제' : '부스터 추가'}
+            onPress={() => toggle(ticker)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="mr-2">
+            <Ionicons
+              name={boosted ? 'flash' : 'flash-outline'}
+              size={18}
+              color={boosted ? '#2563eb' : '#94a3b8'}
+            />
+          </TouchableOpacity>
+        ) : null}
+      </View>
     </View>
   );
 };

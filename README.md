@@ -218,6 +218,7 @@ npx expo start -c
 - 탭 재구성: 알림 탭을 기간손익 탭으로 교체, 체결내역/기간손익 탭 추가, 부스터 탭을 마지막으로 이동
 - 홈 섹션 '더 보기' 클릭 시 해당 탭/상세로 이동 (잔고→잔고, 기간손익→기간손익, 체결내역→체결내역, 매수 체결강도 상위→상세 화면)
 - 랭킹 상세 화면 추가: `RankingDetailScreen` (kind 파라미터로 여러 랭킹 전체 리스트 표시)
+- 부스터 기능 추가: 종목 부스터 토글(아이템 우측 번개 아이콘), Zustand 영속 저장소(`stores/booster.ts`), 부스터 탭에서 등록 종목 리스트 출력 및 전체 비우기
 
 ## 공용 UI 컴포넌트 사용 예
 
@@ -440,6 +441,25 @@ const { cano, acntPrdtCd } = splitAccountParts('12345678-01'); // { cano: '12345
 - 실제 TR ID 확인 필요 (`TRADING_TR_IDS` placeholder)
 - 필드 이름(손익/수량 등)은 계정/상품 유형별 변동 가능 → UI 사용 전 실제 응답 shape 콘솔 확인 권장
 - 기간손익 API 의 응답 구조(일자 vs 종목별)는 문서/계정 권한에 따라 다를 수 있음 → 후속 세분화 필요
+
+## 부스터 기능
+
+- 목적: 관심 종목을 "부스터"로 빠르게 마킹해 별도 탭에서 모아보기
+- 저장소: `stores/booster.ts` (Zustand + AsyncStorage persist)
+  - shape: `{ items: { ticker, addedAt }[] }`
+  - actions: `add(ticker)`, `remove(ticker)`, `toggle(ticker)`, `clear()`
+- UI 연동:
+  - `CurrentPriceItem` 우측 번개 아이콘(미등록: 회색 flash-outline, 등록: 파란 flash)
+  - 탭의 `BoosterScreen`에서 부스터 등록 종목을 `Section` 컴포넌트로 표시 (순서: 추가한 시간 기준, 순위 번호 제공)
+  - footer: "전체 비우기" (존재 시)
+- 사용 방법:
+  1. 아무 랭킹/잔고/손익 리스트 아이템 우측 번개 아이콘 탭 → 파란색으로 변하면 등록 완료
+  2. Booster 탭 이동 → 등록 종목 확인
+  3. 다시 아이콘 탭 시 해제 / "전체 비우기"로 모두 초기화
+- 확장 예정 아이디어:
+  - 부스터 메모/분류 태그
+  - 실시간 시세/알림 연동
+  - 정렬(추가순/티커/변동률) 및 검색 필터
 
 ## Design Theme (Toss Invest inspired)
 
