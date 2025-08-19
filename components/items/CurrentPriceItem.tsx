@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ViewProps, TouchableOpacity } from 'react-native';
 import { getLogoByTicker } from '../../logoData';
 import { LogoSvg } from '../ui/LogoSvg';
 import { Ionicons } from '@expo/vector-icons';
 import { useBoosterStore, useIsBoosted } from '../../stores/booster';
+import { useBoosterPriceStore } from '../../hooks/useBoosterPrices';
 
 export type CurrentPriceItemProps = ViewProps & {
   ticker?: string;
@@ -31,9 +32,22 @@ export const CurrentPriceItem = ({
   const logo = getLogoByTicker(ticker);
   const logoUri = logo ? `https://s3-symbol-logo.tradingview.com/${logo.logoid}--big.svg` : null;
   const boosted = useIsBoosted(ticker);
+  const boosterPrice = useBoosterPriceStore((s) => (ticker ? s.prices[ticker] : undefined));
+  const [flash, setFlash] = useState(false);
+  const flashTimer = useRef<NodeJS.Timeout | null>(null);
+  // Detect price change for flash effect
+  useEffect(() => {
+    if (!boosterPrice) return;
+    if (boosterPrice.prevLast !== undefined && boosterPrice.prevLast !== boosterPrice.last) {
+      setFlash(true);
+      if (flashTimer.current) clearTimeout(flashTimer.current);
+      flashTimer.current = setTimeout(() => setFlash(false), 1000);
+    }
+  }, [boosterPrice]);
+  useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
   const toggle = useBoosterStore((s) => s.toggle);
   return (
-    <View className={`flex-row items-center justify-between p-2 ${className}`} {...rest}>
+    <View className={`flex-row items-center justify-between p-2 ${className}`} {...rest} style={flash ? { borderWidth: 1, borderColor: '#ef4444', borderRadius: 6 } : undefined}>
       <View className="mr-3 items-center" style={{ width: 36 }}>
         {rank != null ? (
           <Text

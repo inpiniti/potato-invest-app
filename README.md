@@ -461,6 +461,50 @@ const { cano, acntPrdtCd } = splitAccountParts('12345678-01'); // { cano: '12345
   - 실시간 시세/알림 연동
   - 정렬(추가순/티커/변동률) 및 검색 필터
 
+### 부스터 실시간 시세(WebSocket) 구독
+
+부스터에 추가한 티커들은 WebSocket을 통해 실시간으로 가격/등락률을 받아 `BoosterScreen` 에 표시합니다. 현재는 한국투자 실제 HDFSCNT0(또는 해외 실시간) 프로토콜 적용 전으로, placeholder JSON 포맷(`{ type:'subscribe', ticker }`)을 사용하고 있으므로 추후 실제 스펙을 치환하면 됩니다.
+
+구성 요약:
+
+- 훅: `useBoosterPrices()`
+  - 렌더 결과를 반환하지 않고 사이드이펙트만 수행 (소켓 생성/구독 diff 관리)
+  - 승인키(approvalKey) 변경 시 1회 재연결
+  - 부스터 티커 목록 증감(diff) 계산 → subscribe/unsubscribe 메시지 전송
+  - 200ms 이하 동일 티커 다발 업데이트는 throttle (최대 5회/초) 하여 렌더 폭주 방지
+- 시세 스토어: `useBoosterPriceStore`
+  - shape: `prices[ticker] = { last, rate, updatedAt, prevLast? }`
+  - `prevLast` 비교로 가격 변동시 UI 플래시 처리
+- UI: `CurrentPriceItem`
+  - `prevLast !== last` 감지 → 1초간 붉은 border flash 효과
+  - 번개 아이콘으로 실시간 구독 대상(부스터) 토글
+- 화면: `BoosterScreen`
+  - `useBoosterPrices()` 호출로 구독 유지
+  - shallow selector(`useShallow`)로 `prices` 읽어 불필요한 리렌더 최소화
+
+예시 흐름:
+
+1. 사용자가 아이템 우측 번개 아이콘 탭 → `booster` 스토어에 티커 추가
+2. 훅이 diff 계산 → 구독 메시지 전송 (소켓 미오픈이면 pending queue 저장 후 onopen 시 처리)
+3. 서버로부터 `{ ticker, last, rate }` 수신 → throttle → `update()` 스토어 반영
+4. 컴포넌트가 `prevLast` 변화 감지 → flash border
+5. 해제 시 unsubscribe 메시지 전송 + 가격 데이터 제거
+
+재연결 / 예외 처리:
+
+- 현재 onclose 시 단순 초기화만 수행 (자동 재시도/백오프 미구현)
+- 향후: 지수적 백오프, 상태 인디케이터(연결/재연결/에러), 에러 프레임 처리 추가 예정
+
+TODO:
+
+- [ ] 실제 HDFSCNT0 (또는 해외 실시간 채널) 구독/해제 포맷 반영
+- [ ] 재연결 & 백오프 + 자동 재구독
+- [ ] 연결 상태 UI (연결/재연결/에러 배지)
+- [ ] 추가 필드(bid/ask, 체결량, 거래대금 등) 확장
+- [ ] 가격 변동 방향별 색상 플래시 (현재 단일 붉은 border)
+
+이 설계로 비즈니스 로직(소켓/구독)과 프레젠테이션(UI)이 분리되어 유지보수가 용이하며, 실제 프로토콜 적용 시 `buildSubscribeMessage`/`buildUnsubscribeMessage` 및 onmessage 파싱 부분만 교체하면 됩니다.
+
 ## Design Theme (Toss Invest inspired)
 
 참고: 이 환경에서는 Playwright MCP로의 전체 브라우징은 직접 실행하지 않습니다. 공개 페이지를 기반으로 톤/무드를 참고해 테마 토큰을 추출·정리한 것이며, 정확한 색상은 디자이너 확인 또는 컬러 피커로 보정하는 것을 권장합니다.
