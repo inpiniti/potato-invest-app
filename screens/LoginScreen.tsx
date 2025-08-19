@@ -13,7 +13,7 @@ export default function LoginScreen({ navigation }: any) {
       appKey: s.appKey,
       secretKey: s.secretKey,
       setCredentials: s.setCredentials,
-    })),
+    }))
   );
   const { login } = useKIAuth();
   const [loading, setLoading] = useState(false);
@@ -72,7 +72,12 @@ export default function LoginScreen({ navigation }: any) {
         />
       </View>
 
-  <Button title={loading ? '처리 중…' : '시작하기'} onPress={onSubmit} disabled={loading} className="mt-8 py-4" />
+      <Button
+        title={loading ? '처리 중…' : '시작하기'}
+        onPress={onSubmit}
+        disabled={loading}
+        className="mt-8 py-4"
+      />
     </View>
   );
 }

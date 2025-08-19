@@ -30,8 +30,16 @@ export const CurrentPriceItem = ({
   const logoUri = logo ? `https://s3-symbol-logo.tradingview.com/${logo.logoid}--big.svg` : null;
   return (
     <View className={`flex-row items-center justify-between p-2 ${className}`} {...rest}>
-      <View className="mr-3 w-6 items-center">
-        {rank != null ? <Text className="text-sm text-primary">{rank}</Text> : null}
+      <View className="mr-3 items-center" style={{ width: 36 }}>
+        {rank != null ? (
+          <Text
+            className="text-sm text-primary"
+            numberOfLines={1}
+            ellipsizeMode="clip"
+            style={{ includeFontPadding: false }}>
+            {rank}
+          </Text>
+        ) : null}
       </View>
       {logoUri ? <LogoSvg uri={logoUri} size={30} className="mr-2" /> : null}
       <View className="flex-1 flex-row items-center">
