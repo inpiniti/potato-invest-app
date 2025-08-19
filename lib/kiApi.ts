@@ -447,6 +447,102 @@ export async function getMarketCap(params: {
   });
 }
 
+// ===== Daily price (기간별 시세) =====
+// Spec (사용자 제공): tr_id HHDFS76240000, AUTH '', EXCD, SYMB, GUBN '0', BYMD '', MODP '0'
+export type DailyPriceRow = {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  [k: string]: any;
+};
+
+export type DailyPriceResponse = {
+  output1?: any;
+  output2?: any[];
+  output?: any[];
+  rt_cd?: string;
+  msg_cd?: string;
+  msg1?: string;
+  [k: string]: any;
+};
+
+export async function getDailyPrices(params: {
+  env: Env;
+  accessToken: string;
+  appkey: string;
+  appsecret: string;
+  EXCD: string;
+  SYMB: string;
+  GUBN?: string;
+  BYMD?: string;
+  MODP?: string;
+  count?: number;
+}): Promise<DailyPriceRow[]> {
+  const base = HOSTS[params.env];
+  const trId = 'HHDFS76240000';
+  const headers = buildHeaders({
+    env: params.env,
+    appkey: params.appkey,
+    appsecret: params.appsecret,
+    accessToken: params.accessToken,
+    trId,
+  });
+  const q = toQuery({
+    AUTH: '',
+    EXCD: params.EXCD,
+    SYMB: params.SYMB,
+    GUBN: params.GUBN ?? '0',
+    BYMD: params.BYMD ?? '',
+    MODP: params.MODP ?? '0',
+  });
+  const url = `${base}/uapi/overseas-price/v1/quotations/dailyprice?${q}`;
+  if (__DEV__)
+    console.log('[KI][GET][dailyprice]', { url, q, trId, headers: maskHeaders(headers) });
+  let res: DailyPriceResponse;
+  try {
+    res = await http<DailyPriceResponse>(url, { method: 'GET', headers });
+  } catch (e: any) {
+    if (__DEV__) console.log('[KI][ERR][dailyprice][http]', e?.message || e);
+    throw e;
+  }
+  const rawRows = (res as any)?.output2 || (res as any)?.output || [];
+  const rowCount = Array.isArray(rawRows) ? rawRows.length : 0;
+  if (__DEV__) {
+    console.log('[KI][RES][dailyprice]', {
+      trId,
+      rowCount,
+      rt_cd: res?.rt_cd,
+      msg_cd: res?.msg_cd,
+      msg1: res?.msg1,
+      keys: Object.keys(res || {}),
+      sample: truncateObj(rawRows?.[0] || res),
+    });
+    if (!rowCount) {
+      console.log('[KI][RES][dailyprice][empty-debug]', {
+        headers: maskHeaders(headers),
+        q,
+        hasOutput1: !!res?.output1,
+        hasOutput2: !!res?.output2,
+        raw: truncateObj(res),
+      });
+    }
+  }
+  const mapped: DailyPriceRow[] = (Array.isArray(rawRows) ? rawRows : []).map((r: any) => ({
+  // 한국투자 해외 일봉 응답 필드 (샘플): xymd, open, high, low, clos, tvol, tamt, diff, rate, sign
+  date: r?.xymd || '',
+  open: parseFloat(r?.open) || 0,
+  high: parseFloat(r?.high) || 0,
+  low: parseFloat(r?.low) || 0,
+  close: parseFloat(r?.clos) || 0,
+  volume: parseFloat(r?.tvol) || 0,
+  raw: r,
+  }));
+  mapped.sort((a, b) => a.date.localeCompare(b.date));
+  return params.count ? mapped.slice(-params.count) : mapped;
+}
 // Generic mapping to allow adding more endpoints later when TR IDs are confirmed
 export const RANKING_ENDPOINTS = {
   'updown-rate': {

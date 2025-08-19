@@ -220,6 +220,52 @@ npx expo start -c
 - 랭킹 상세 화면 추가: `RankingDetailScreen` (kind 파라미터로 여러 랭킹 전체 리스트 표시)
 - 부스터 기능 추가: 종목 부스터 토글(아이템 우측 번개 아이콘), Zustand 영속 저장소(`stores/booster.ts`), 부스터 탭에서 등록 종목 리스트 출력 및 전체 비우기
 - 종목 상세 화면 추가: `StockDetailScreen` (리스트 아이템(CurrentPriceItem) 탭 시 이동, 내부 전용 Tab.Navigator: 차트/분석/재무분석/커뮤니티/뉴스 – 각 탭은 중앙에 텍스트 placeholder)
+  - 차트 탭: 해외 기간별 시세(TR: HHDFS76240000) 일봉 호출 + 캔들/이동평균(5/20)/거래량 차트, 최근 60영업일 리스트(최신일 상단, O/H/L/C, diff, rate), 수평 그리드 및 재조회 버튼
+
+### 종목 상세 탭 분리 구조 (Refactor)
+
+이전에는 `StockDetailScreen.tsx` 한 파일에서 차트/분석/재무/커뮤니티/뉴스 UI 를 모두 inline 으로 관리했으나 유지보수성과 코드 가독성을 위해 아래와 같이 분리했습니다.
+
+```
+screens/
+  StockDetailScreen.tsx        # 탭 네비게이터 컨테이너 (타이틀/아이콘/params 처리)
+  stock/
+    ChartTab.tsx              # 일봉 캔들 + MA(5,20) + 거래량 + 일자별 리스트
+    AnalysisTab.tsx           # 향후 기업/퀀트 분석 (placeholder)
+    FinanceTab.tsx            # 재무지표/손익/성장성 (placeholder)
+    CommunityTab.tsx          # 커뮤니티/코멘트 (placeholder)
+    NewsTab.tsx               # 뉴스 목록 (placeholder)
+```
+
+`StockDetailScreen` 은 오직 탭 구성과 네비게이션 옵션만 담당하고, 각 도메인 UI 는 개별 파일에서 자체 상태/렌더링을 구현합니다.
+
+### 차트 구현 상세 (ChartTab)
+
+의존 라이브러리: `react-native-svg` (외부 차트 전용 라이브러리 미도입, 커스텀 경량 구현)
+
+구성 요소:
+- 캔들 차트: 고가/저가 wick + 시가/종가 body (상승=초록 `#16a34a`, 하락=빨강 `#dc2626`)
+- 이동평균선: 5일(노랑 `#f59e0b`), 20일(보라 `#6366f1`)
+- 얇은 종가 라인(배경형 보조 라인) : `#2563eb55`
+- 수평 그리드 4등분: `#e2e8f0`
+- 거래량 막대: 캔들 폭 60% 비율, 상승/하락 동일 색상 낮은 불투명도(opacity 0.4)
+- 반응형 폭: `min(windowWidth - 32, 420)` 로 모바일 폭 좁을 때 패딩 유지
+- 스크롤: 가로 ScrollView 로 향후 데이터 확대 대응
+- 리스트: 최근 60개 역순(최신 상단), Close / diff / rate / OHL 표시
+- 재조회 버튼: 상단(데이터 없음), 하단(리스트 아래) 위치
+- 메모이제이션: `useMemo` 로 MA / path 계산 최소화
+
+데이터 처리:
+- API: TR `HHDFS76240000` (기간별 시세) 응답의 `output2` → (date, open, high, low, close, volume) 매핑
+- 날짜 오름차순 정렬 후 렌더링 (리스트는 reverse)
+- 이동평균 계산: 누적 slice 평균 (단순이동평균(SMA))
+- 방어: 데이터 0건일 때 빈 상태 메시지 & 수동 재조회 제공
+
+향후 개선 아이디어:
+- 터치 크로스헤어 & 툴팁(고/저/시/종/거래량)
+- 기간 필터(7D / 1M / 3M / 6M / 1Y)
+- 추가 지표 (EMA, RSI, Bollinger Band)
+- 성능 최적화 (FlatList + 가상화 / Path precompute memoization)
 
 ## 공용 UI 컴포넌트 사용 예
 

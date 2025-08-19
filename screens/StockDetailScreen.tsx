@@ -1,22 +1,19 @@
 import React, { useLayoutEffect } from 'react';
-import { View, Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { ChartTab } from './stock/ChartTab';
+import { AnalysisTab } from './stock/AnalysisTab';
+import { FinanceTab } from './stock/FinanceTab';
+import { CommunityTab } from './stock/CommunityTab';
+import { NewsTab } from './stock/NewsTab';
 
 type StockDetailParams = {
   ticker?: string;
   name?: string;
 };
 
-function Placeholder({ label }: { label: string }) {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ fontSize: 20, fontWeight: '600' }}>{label}</Text>
-    </View>
-  );
-}
-
+// Inline ChartTab removed - now in separate file under ./stock/ChartTab
 const Tab = createBottomTabNavigator();
 
 export default function StockDetailScreen() {
@@ -57,13 +54,16 @@ export default function StockDetailScreen() {
           }
           return <Ionicons name={icon} size={size} color={color} />;
         },
-      })}
-    >
-      <Tab.Screen name="Chart" component={() => <Placeholder label="차트" />} options={{ title: '차트' }} />
-      <Tab.Screen name="Analysis" component={() => <Placeholder label="분석" />} options={{ title: '분석' }} />
-      <Tab.Screen name="Finance" component={() => <Placeholder label="재무분석" />} options={{ title: '재무분석' }} />
-      <Tab.Screen name="Community" component={() => <Placeholder label="커뮤니티" />} options={{ title: '커뮤니티' }} />
-      <Tab.Screen name="News" component={() => <Placeholder label="뉴스" />} options={{ title: '뉴스' }} />
+      })}>
+      <Tab.Screen
+        name="Chart"
+        options={{ title: '차트' }}
+        component={() => <ChartTab ticker={ticker} />}
+      />
+  <Tab.Screen name="Analysis" component={AnalysisTab} options={{ title: '분석' }} />
+  <Tab.Screen name="Finance" component={FinanceTab} options={{ title: '재무분석' }} />
+  <Tab.Screen name="Community" component={CommunityTab} options={{ title: '커뮤니티' }} />
+  <Tab.Screen name="News" component={NewsTab} options={{ title: '뉴스' }} />
     </Tab.Navigator>
   );
 }
