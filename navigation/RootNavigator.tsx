@@ -6,19 +6,22 @@ import { Ionicons } from '@expo/vector-icons';
 
 import HomeScreen from '../screens/HomeScreen';
 import SearchScreen from '../screens/SearchScreen';
-import NotificationsScreen from '../screens/NotificationsScreen';
 import BoosterScreen from '../screens/BoosterScreen';
+import PeriodProfitScreen from '../screens/PeriodProfitScreen';
+import ExecutionsScreen from '../screens/ExecutionsScreen';
 import BalanceScreen from '../screens/BalanceScreen';
 import HomeDetailScreen from '../screens/HomeDetailScreen';
+import RankingDetailScreen from '../screens/RankingDetailScreen';
 import SplashScreen from '../screens/SplashScreen';
 import LoginScreen from '../screens/LoginScreen';
 
 export type RootTabParamList = {
   Home: undefined;
-  Search: undefined;
-  Booster: undefined;
-  Notifications: undefined;
   Balance: undefined;
+  PeriodProfit: undefined;
+  Executions: undefined;
+  Booster: undefined;
+  Search: undefined;
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -46,31 +49,31 @@ function TabNavigator() {
             case 'Home':
               name = 'home';
               break;
-            case 'Search':
-              name = 'search';
+            case 'Balance':
+              name = 'wallet-outline';
+              break;
+            case 'PeriodProfit':
+              name = 'trending-up';
+              break;
+            case 'Executions':
+              name = 'list';
               break;
             case 'Booster':
               name = 'flash';
               break;
-            case 'Notifications':
-              name = 'notifications';
-              break;
-            case 'Balance':
-              name = 'wallet-outline';
+            case 'Search':
+              name = 'search';
               break;
           }
           return <Ionicons name={name} size={size} color={color} />;
         },
       })}>
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: '홈' }} />
-      <Tab.Screen name="Balance" component={BalanceScreen} options={{ title: '잔고' }} />
-      <Tab.Screen name="Booster" component={BoosterScreen} options={{ title: '부스터' }} />
-      <Tab.Screen
-        name="Notifications"
-        component={NotificationsScreen}
-        options={{ title: '알림' }}
-      />
-      <Tab.Screen name="Search" component={SearchScreen} options={{ title: '테스트' }} />
+  <Tab.Screen name="Home" component={HomeScreen} options={{ title: '감자증권' }} />
+  <Tab.Screen name="Balance" component={BalanceScreen} options={{ title: '잔고' }} />
+  <Tab.Screen name="PeriodProfit" component={PeriodProfitScreen} options={{ title: '기간손익' }} />
+  <Tab.Screen name="Executions" component={ExecutionsScreen} options={{ title: '체결내역' }} />
+  <Tab.Screen name="Booster" component={BoosterScreen} options={{ title: '부스터' }} />
+  <Tab.Screen name="Search" component={SearchScreen} options={{ title: '테스트' }} />
     </Tab.Navigator>
   );
 }
@@ -83,6 +86,7 @@ export default function RootNavigator() {
         <Stack.Screen name="Login" component={LoginScreen} options={{ title: '로그인' }} />
         <Stack.Screen name="Root" component={TabNavigator} options={{ headerShown: false }} />
         <Stack.Screen name="HomeDetail" component={HomeDetailScreen} options={{ title: '상세' }} />
+  <Stack.Screen name="RankingDetail" component={RankingDetailScreen} options={{ title: '랭킹 전체' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

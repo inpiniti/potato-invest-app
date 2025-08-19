@@ -16,9 +16,7 @@ type AuthState = {
   secretKey: string;
   env: Env;
   tokens: Tokens;
-  setCredentials: (
-    p: Partial<Pick<AuthState, 'account' | 'appKey' | 'secretKey' | 'env'>>,
-  ) => void;
+  setCredentials: (p: Partial<Pick<AuthState, 'account' | 'appKey' | 'secretKey' | 'env'>>) => void;
   setTokens: (p: Partial<Tokens>) => void;
   reset: () => void;
 };
@@ -36,7 +34,7 @@ const creator: StateCreator<AuthState> = (set) => ({
       account: '',
       appKey: '',
       secretKey: '',
-  env: 'real',
+      env: 'real',
       tokens: { accessToken: null, tokenExpiresAt: null, approvalKey: null },
     }),
 });
@@ -52,5 +50,5 @@ export const useAuthStore = create<AuthState>()(
       env: s.env,
       tokens: s.tokens,
     }),
-  }),
+  })
 );
