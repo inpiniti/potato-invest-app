@@ -42,9 +42,11 @@ export function useOverseasBalance(options?: { exchange?: string; currency?: str
   });
 }
 
-export function useOverseasPeriodProfit(range?: { start: string; end: string; exchange?: string; currency?: string }) {
+export function useOverseasPeriodProfit(range?: { start?: string; end?: string }) {
   const { account, env, appKey, secretKey, tokens } = useAuthStore();
-  const { start, end } = range || defaultDateRange();
+  const effective = range || {};
+  const start = effective.start || '20250301';
+  const end = effective.end || fmtYmd(new Date());
   return useQuery({
     queryKey: ['ki', 'trading', 'period-profit', env, account, start, end],
     queryFn: async () => {
@@ -58,14 +60,10 @@ export function useOverseasPeriodProfit(range?: { start: string; end: string; ex
         acntPrdtCd,
         startDate: start,
         endDate: end,
-        extraQuery: {
-          OVRS_EXCG_CD: range?.exchange,
-          TR_CRCY_CD: range?.currency,
-        },
       });
     },
-    enabled: Boolean(tokens.accessToken && appKey && secretKey && account && start && end),
-  refetchInterval: false,
+    enabled: Boolean(tokens.accessToken && appKey && secretKey && account),
+    refetchInterval: false,
     select: parseMerged,
   });
 }
@@ -97,13 +95,6 @@ export function useOverseasExecutions(range?: { start?: string; end?: string; ex
   refetchInterval: false,
     select: parseMerged,
   });
-}
-
-function defaultDateRange() {
-  const end = new Date();
-  const start = new Date();
-  start.setDate(end.getDate() - 7);
-  return { start: fmtYmd(start), end: fmtYmd(end) };
 }
 
 function fmtYmd(d: Date) {

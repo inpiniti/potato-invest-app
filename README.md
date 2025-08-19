@@ -13,7 +13,7 @@
   - appkey/appsecret: 로그인 입력값 재사용
 - 초기 1회 조회 후 자동 주기 갱신은 비활성 (refetchInterval 사용 안함). 각 섹션 왼쪽 Reload 버튼 클릭 시 재조회.
 
-참고: 문서에 따르면 위 3개 순위 API는 모의투자 미지원입니다. 데모 환경(env=demo)에서는 호출 실패할 수 있으니 실환경(env=real)에서 테스트하세요.
+NOTE: 본 앱은 실전(real) 전용으로 구성되었으며 모든 데모(openapivts) 관련 코드는 제거되었습니다.
 
 ### 주요 코드
 
@@ -255,12 +255,12 @@ import { Input } from 'components/ui/Input';
 ```tsx
 import { SegmentedTabs } from 'components/ui/SegmentedTabs';
 
+{/* 데모 환경 제거로 SegmentedTabs 예시는 real 단일 옵션만 필요 시 사용 */}
 <SegmentedTabs
   tabs={[
-    { key: 'demo', label: '모의투자' },
     { key: 'real', label: '실전투자' },
   ]}
-  value={'demo'}
+  value={'real'}
   onChange={(k) => console.log(k)}
 />;
 ```
@@ -312,10 +312,9 @@ import { BottomInfo } from 'components/BottomInfo';
 - 토큰: `/oauth2/tokenP` (grant_type=client_credentials, appkey, appsecret)
 - 승인키: `/oauth2/Approval` (appkey, appsecret)
 
-환경별 호스트
+환경 호스트 (본 앱은 실전(real) 전용이며 데모 환경 호출 코드는 제거되었습니다)
 
 - real: https://openapi.koreainvestment.com:9443
-- demo: https://openapivts.koreainvestment.com:29443
 
 설치
 
@@ -352,7 +351,7 @@ type AuthState = {
   account: string;
   appKey: string;
   secretKey: string;
-  env: 'demo' | 'real';
+  env: 'real'; // 데모 제거
   tokens: Tokens;
 };
 ```

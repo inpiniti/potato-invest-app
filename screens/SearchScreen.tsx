@@ -94,7 +94,7 @@ export default function SearchScreen() {
                   }
                   price={`${row?.pchs_avg_pric} (${row?.ovrs_cblc_qty})`}
                   change={`${row?.evlu_pfls_rt}%`}
-                  changePositive={Number(row?.evlu_erng_rt) >= 0}
+                  changePositive={Number(row?.evlu_pfls_rt) >= 0}
                 />
               ))}
             </Section>
@@ -125,16 +125,11 @@ export default function SearchScreen() {
                 <CurrentPriceItem
                   key={idx}
                   rank={idx + 1}
-                  ticker={row?.symb || row?.rsym || row?.ovrs_item_cd}
-                  name={
-                    (row?.symb || '') +
-                    ' (' +
-                    (row?.ovrs_item_name || row?.name || row?.itnm || '') +
-                    ')'
-                  }
-                  price={String(row?.evlu_pfls_amt ?? row?.pft_amt ?? row?.ord_psbl_qty ?? '')}
-                  change={String(row?.evlu_erng_rt ?? row?.pft_rt ?? '')}
-                  changePositive={Number(row?.evlu_erng_rt ?? row?.pft_rt) >= 0}
+                  ticker={row?.ovrs_pdno}
+                  name={(row?.ovrs_pdno || '') + ' (' + (row?.ovrs_item_name || '') + ')'}
+                  price={`${Number(Number(row?.ovrs_rlzt_pfls_amt).toFixed(0)).toLocaleString()}원`}
+                  change={`${Number(row?.pftrt).toFixed(2)}%`}
+                  changePositive={Number(row?.pftrt) >= 0}
                 />
               ))}
             </Section>

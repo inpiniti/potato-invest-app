@@ -2,7 +2,7 @@ import type { Env } from '../stores/auth';
 
 const HOSTS = {
   real: 'https://openapi.koreainvestment.com:9443',
-  demo: 'https://openapivts.koreainvestment.com:29443',
+  demo: 'https://openapi.koreainvestment.com:9443',
 } as const;
 
 const json = (body: unknown) => JSON.stringify(body);
@@ -20,7 +20,13 @@ async function http<T>(url: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     if (__DEV__) {
-      console.log('[KI][HTTP][ERROR]', { url, status: res.status, statusText: res.statusText, durMs: dur, body: text.slice(0, 500) });
+      console.log('[KI][HTTP][ERROR]', {
+        url,
+        status: res.status,
+        statusText: res.statusText,
+        durMs: dur,
+        body: text.slice(0, 500),
+      });
     }
     throw new Error(`HTTP ${res.status} ${res.statusText}: ${text}`);
   }
@@ -46,7 +52,9 @@ export async function issueAccessToken(opts: {
   appkey: string;
   appsecret: string;
 }): Promise<TokenResponse> {
+  console.log('opts.env', opts.env);
   const base = HOSTS[opts.env];
+  console.log('base', base);
   return await http<TokenResponse>(`${base}/oauth2/tokenP`, {
     method: 'POST',
     body: json({
@@ -103,7 +111,8 @@ function mask(v?: string | null) {
 
 function maskHeaders(h: Record<string, string>): Record<string, string> {
   const clone: Record<string, string> = { ...h };
-  if (clone.authorization) clone.authorization = 'Bearer ' + mask(clone.authorization.replace(/^Bearer\s+/i, ''));
+  if (clone.authorization)
+    clone.authorization = 'Bearer ' + mask(clone.authorization.replace(/^Bearer\s+/i, ''));
   if (clone.appkey) clone.appkey = mask(clone.appkey);
   if (clone.appsecret) clone.appsecret = mask(clone.appsecret);
   return clone;
@@ -117,6 +126,14 @@ function truncateObj(obj: any, maxLen = 1500) {
   } catch {
     return obj;
   }
+}
+
+// YYYYMMDD 포맷 유틸 (기간손익 기본 endDate 계산용)
+function fmtYmd(d: Date) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}${mm}${dd}`;
 }
 
 function toQuery(params: Record<string, string | number | undefined>) {
@@ -171,7 +188,9 @@ export async function getOverseasRanking(opts: {
       trId: opts.trId,
       headers: maskHeaders(headers),
       keys: Object.keys(res || {}),
-      sample: truncateObj((res as any)?.output2?.[0] || (res as any)?.output?.[0] || (res as any)?.output1?.[0]),
+      sample: truncateObj(
+        (res as any)?.output2?.[0] || (res as any)?.output?.[0] || (res as any)?.output1?.[0]
+      ),
       outputTypes: {
         output: Array.isArray((res as any)?.output) ? 'array' : typeof (res as any)?.output,
         output1: Array.isArray((res as any)?.output1) ? 'array' : typeof (res as any)?.output1,
@@ -432,31 +451,31 @@ export async function getMarketCap(params: {
 export const RANKING_ENDPOINTS = {
   'updown-rate': {
     path: '/uapi/overseas-stock/v1/ranking/updown-rate',
-  trId: 'HHDFS76290000',
+    trId: 'HHDFS76290000',
   },
   'new-highlow': {
     path: '/uapi/overseas-stock/v1/ranking/new-highlow',
-  trId: 'HHDFS76300000',
+    trId: 'HHDFS76300000',
   },
   'trade-vol': {
     path: '/uapi/overseas-stock/v1/ranking/trade-vol',
-  trId: 'HHDFS76310010',
+    trId: 'HHDFS76310010',
   },
   'trade-pbmn': {
     path: '/uapi/overseas-stock/v1/ranking/trade-pbmn',
-  trId: 'HHDFS76320010',
+    trId: 'HHDFS76320010',
   },
   'trade-growth': {
     path: '/uapi/overseas-stock/v1/ranking/trade-growth',
-  trId: 'HHDFS76330000',
+    trId: 'HHDFS76330000',
   },
   'trade-turnover': {
     path: '/uapi/overseas-stock/v1/ranking/trade-turnover',
-  trId: 'HHDFS76340000',
+    trId: 'HHDFS76340000',
   },
   'market-cap': {
     path: '/uapi/overseas-stock/v1/ranking/market-cap',
-  trId: 'HHDFS76350100',
+    trId: 'HHDFS76350100',
   },
 } as const;
 
@@ -503,7 +522,8 @@ function mergeTradingOutputs(res: { output1?: any; output2?: any }): { summary: 
   const summary = res.output1 ?? (Array.isArray(res.output2) ? null : undefined);
   let rows: any[] = [];
   if (Array.isArray(res.output2)) rows = res.output2;
-  else if (Array.isArray(res.output1)) rows = res.output1; // 혹시 반대로 오는 경우 방어
+  else if (Array.isArray(res.output1))
+    rows = res.output1; // 혹시 반대로 오는 경우 방어
   else if (res.output2 != null) rows = [res.output2];
   else if (res.output1 != null && Array.isArray(res.output1) === false) rows = [res.output1];
   return { summary, rows };
@@ -547,7 +567,7 @@ export async function getOverseasBalance(params: {
 }): Promise<OverseasBalanceResponse & { _merged?: { summary: any; rows: any[] } }> {
   const base = HOSTS[params.env];
   // 실전: TTTS3012R / 모의: VTTS3012R (문서 기준 잔고 조회 TR)
-  const trId = params.trId || (params.env === 'real' ? 'TTTS3012R' : 'VTTS3012R');
+  const trId = params.trId || 'TTTS3012R';
   const headers = buildHeaders({
     env: params.env,
     appkey: params.appkey,
@@ -557,7 +577,7 @@ export async function getOverseasBalance(params: {
   });
   // 필수(Y) 파라미터만 구성: CANO, ACNT_PRDT_CD, OVRS_EXCG_CD, TR_CRCY_CD, CTX_AREA_FK200, CTX_AREA_NK200
   // 실전 env: 나스닥 단일코드 NAS (미국전체), 모의 env: 나스닥 NASD (문서 표기)
-  const defaultExchange = params.env === 'real' ? 'NAS' : 'NASD';
+  const defaultExchange = 'NAS';
   const defaultQuery: Record<string, string | undefined> = {
     CANO: params.cano,
     ACNT_PRDT_CD: params.acntPrdtCd,
@@ -614,13 +634,12 @@ export async function getOverseasPeriodProfit(params: {
   appsecret: string;
   cano: string;
   acntPrdtCd: string;
-  startDate: string; // YYYYMMDD
-  endDate: string; // YYYYMMDD
-  trId?: string;
-  extraQuery?: Partial<Record<string, string | undefined>>;
+  startDate?: string; // 기본 20250301
+  endDate?: string; // 기본 오늘
+  pageLimit?: number; // 연속조회 최대 페이지 수 (기본 20)
 }): Promise<OverseasPeriodProfitResponse & { _merged?: { summary: any; rows: any[] } }> {
   const base = HOSTS[params.env];
-  const trId = params.trId || TRADING_TR_IDS.periodProfit;
+  const trId = 'TTTS3039R'; // 명시된 고정 TR ID
   const headers = buildHeaders({
     env: params.env,
     appkey: params.appkey,
@@ -628,33 +647,69 @@ export async function getOverseasPeriodProfit(params: {
     accessToken: params.accessToken,
     trId,
   });
-  const defaultQuery = {
-    CANO: params.cano,
-    ACNT_PRDT_CD: params.acntPrdtCd,
-    START_DT: params.startDate,
-    END_DT: params.endDate,
-    OVRS_EXCG_CD: 'NASD',
-    TR_CRCY_CD: 'USD',
-    INQR_DVSN_CD: '00',
-    SLL_BUY_DVSN_CD: '00',
-    CTX_AREA_FK200: '',
-    CTX_AREA_NK200: '',
-  } as Record<string, string | undefined>;
-  const q = toQuery({ ...defaultQuery, ...(params.extraQuery || {}) });
-  const url = `${base}/uapi/overseas-stock/v1/trading/inquire-period-profit?${q}`;
-  if (__DEV__) console.log('[KI][GET][period-profit]', { url, q });
-  const res = await http<OverseasPeriodProfitResponse>(url, { method: 'GET', headers });
-  if (__DEV__) {
-    console.log('[KI][RES][period-profit]', {
-      headers: maskHeaders(headers),
-      keys: Object.keys(res || {}),
-      summaryKeys: Object.keys((res as any)?.output1 || {}),
-      rowCount: Array.isArray((res as any)?.output2) ? (res as any).output2.length : 0,
-      sample: truncateObj((res as any)?.output2?.[0] || (res as any)?.output1),
+  const start = params.startDate || '20250301';
+  const end = params.endDate || fmtYmd(new Date());
+  const pageLimit = params.pageLimit ?? 20;
+  let cursorFk = '';
+  let cursorNk = '';
+  let page = 0;
+  const all: any[] = [];
+  let summary: any = null;
+  let lastRes: any = null;
+  while (true) {
+    const q = toQuery({
+      CANO: params.cano,
+      ACNT_PRDT_CD: params.acntPrdtCd,
+      OVRS_EXCG_CD: 'NASD',
+      NATN_CD: '',
+      CRCY_CD: 'USD',
+      PDNO: '',
+      INQR_STRT_DT: start,
+      INQR_END_DT: end,
+      WCRC_FRCR_DVSN_CD: '02',
+      CTX_AREA_FK200: cursorFk,
+      CTX_AREA_NK200: cursorNk,
     });
+    const url = `${base}/uapi/overseas-stock/v1/trading/inquire-period-profit?${q}`;
+    if (__DEV__) console.log('[KI][GET][period-profit]', { page, url, cursorFk, cursorNk });
+    const res = await http<any>(url, { method: 'GET', headers });
+    lastRes = res;
+    const rt = (res as any)?.rt_cd;
+    if (rt && rt !== '0') {
+      if (__DEV__)
+        console.log('[KI][ERR][period-profit]', {
+          page,
+          rt_cd: rt,
+          msg_cd: (res as any)?.msg_cd,
+          msg1: (res as any)?.msg1,
+        });
+      break; // 에러 시 중단 (원본 응답 그대로 반환)
+    }
+    if (!summary && (res as any)?.output1 && !Array.isArray((res as any).output1))
+      summary = (res as any).output1;
+    const rows = Array.isArray((res as any)?.output2)
+      ? (res as any).output2
+      : Array.isArray((res as any)?.output1)
+        ? (res as any).output1
+        : [];
+    all.push(...rows);
+    if (__DEV__)
+      console.log('[KI][RES][period-profit][page]', {
+        page,
+        added: rows.length,
+        total: all.length,
+      });
+    const nextFk = (res as any)?.ctx_area_fk200 || (res as any)?.CTX_AREA_FK200;
+    const nextNk = (res as any)?.ctx_area_nk200 || (res as any)?.CTX_AREA_NK200;
+    if (!nextFk || !nextNk) break;
+    if (nextFk === cursorFk && nextNk === cursorNk) break;
+    cursorFk = nextFk;
+    cursorNk = nextNk;
+    page += 1;
+    if (page >= pageLimit) break;
   }
-  const merged = mergeTradingOutputs(res);
-  return { ...res, _merged: merged };
+  const merged = { summary, rows: all };
+  return { ...(lastRes || {}), _merged: merged, output1: summary, output2: all };
 }
 
 export type MergedTradingData = { summary: any; rows: any[] };

@@ -2,7 +2,7 @@ import { create, type StateCreator } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type Env = 'demo' | 'real';
+export type Env = 'real';
 
 export type Tokens = {
   accessToken: string | null;
@@ -27,7 +27,7 @@ const creator: StateCreator<AuthState> = (set) => ({
   account: '',
   appKey: '',
   secretKey: '',
-  env: 'demo',
+  env: 'real',
   tokens: { accessToken: null, tokenExpiresAt: null, approvalKey: null },
   setCredentials: (p) => set((s) => ({ ...s, ...p })),
   setTokens: (p) => set((s) => ({ ...s, tokens: { ...s.tokens, ...p } })),
@@ -36,7 +36,7 @@ const creator: StateCreator<AuthState> = (set) => ({
       account: '',
       appKey: '',
       secretKey: '',
-      env: 'demo',
+  env: 'real',
       tokens: { accessToken: null, tokenExpiresAt: null, approvalKey: null },
     }),
 });
