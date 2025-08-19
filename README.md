@@ -219,6 +219,7 @@ npx expo start -c
 - 홈 섹션 '더 보기' 클릭 시 해당 탭/상세로 이동 (잔고→잔고, 기간손익→기간손익, 체결내역→체결내역, 매수 체결강도 상위→상세 화면)
 - 랭킹 상세 화면 추가: `RankingDetailScreen` (kind 파라미터로 여러 랭킹 전체 리스트 표시)
 - 부스터 기능 추가: 종목 부스터 토글(아이템 우측 번개 아이콘), Zustand 영속 저장소(`stores/booster.ts`), 부스터 탭에서 등록 종목 리스트 출력 및 전체 비우기
+- 종목 상세 화면 추가: `StockDetailScreen` (리스트 아이템(CurrentPriceItem) 탭 시 이동, 내부 전용 Tab.Navigator: 차트/분석/재무분석/커뮤니티/뉴스 – 각 탭은 중앙에 텍스트 placeholder)
 
 ## 공용 UI 컴포넌트 사용 예
 

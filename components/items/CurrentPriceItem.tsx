@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ViewProps, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { getLogoByTicker } from '../../logoData';
 import { LogoSvg } from '../ui/LogoSvg';
 import { Ionicons } from '@expo/vector-icons';
@@ -44,10 +45,24 @@ export const CurrentPriceItem = ({
       flashTimer.current = setTimeout(() => setFlash(false), 1000);
     }
   }, [boosterPrice]);
-  useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
+  useEffect(
+    () => () => {
+      if (flashTimer.current) clearTimeout(flashTimer.current);
+    },
+    []
+  );
   const toggle = useBoosterStore((s) => s.toggle);
+  const navigation = useNavigation<any>();
+  const handlePress = () => {
+    if (ticker) navigation.navigate('StockDetail', { ticker, name });
+  };
   return (
-    <View className={`flex-row items-center justify-between p-2 ${className}`} {...rest} style={flash ? { borderWidth: 1, borderColor: '#ef4444', borderRadius: 6 } : undefined}>
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={handlePress}
+      className={`flex-row items-center justify-between p-2 ${className}`}
+      {...rest}
+      style={flash ? { borderWidth: 1, borderColor: '#ef4444', borderRadius: 6 } : undefined}>
       <View className="mr-3 items-center" style={{ width: 36 }}>
         {rank != null ? (
           <Text
@@ -95,6 +110,6 @@ export const CurrentPriceItem = ({
           </TouchableOpacity>
         ) : null}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
