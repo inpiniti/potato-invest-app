@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ScrollView, Text } from 'react-native';
 import { useBoosterStore } from '../stores/booster';
 import { useBoosterPrices, useBoosterPriceStore } from '../hooks/useBoosterPrices';
@@ -7,7 +7,11 @@ import { Section } from '../components/ui/Section';
 import { CurrentPriceItem } from '../components/items/CurrentPriceItem';
 
 export default function BoosterScreen() {
-  console.log('[UI] BoosterScreen render');
+  if (__DEV__) console.log('[Booster][UI] render');
+  useEffect(() => {
+    if (__DEV__) console.log('[Booster][UI] mount');
+    return () => { if (__DEV__) console.log('[Booster][UI] unmount'); };
+  }, []);
   const items = useBoosterStore((s) => s.items);
   const clear = useBoosterStore((s) => s.clear);
   useBoosterPrices(); // side-effect only

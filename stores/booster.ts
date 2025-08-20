@@ -21,18 +21,29 @@ const creator: StateCreator<BoosterState> = (set, get) => ({
     set((s) => {
       if (!ticker) return s;
       if (s.items.find((i) => i.ticker === ticker)) return s; // 중복 방지
+      if (__DEV__) console.log('[Booster][STORE] add', ticker);
       return { items: [...s.items, { ticker, addedAt: Date.now() }] };
     }),
-  remove: (ticker) => set((s) => ({ items: s.items.filter((i) => i.ticker !== ticker) })),
+  remove: (ticker) =>
+    set((s) => {
+      if (__DEV__) console.log('[Booster][STORE] remove', ticker);
+      return { items: s.items.filter((i) => i.ticker !== ticker) };
+    }),
   toggle: (ticker) => {
     const { items } = get();
     if (items.find((i) => i.ticker === ticker)) {
+      if (__DEV__) console.log('[Booster][STORE] toggle->remove', ticker);
       get().remove(ticker);
     } else {
+      if (__DEV__) console.log('[Booster][STORE] toggle->add', ticker);
       get().add(ticker);
     }
   },
-  clear: () => set({ items: [] }),
+  clear: () =>
+    set((s) => {
+      if (__DEV__) console.log('[Booster][STORE] clear all', s.items.length);
+      return { items: [] };
+    }),
 });
 
 export const useBoosterStore = create<BoosterState>()(

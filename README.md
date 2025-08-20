@@ -508,49 +508,110 @@ const { cano, acntPrdtCd } = splitAccountParts('12345678-01'); // { cano: '12345
   - 실시간 시세/알림 연동
   - 정렬(추가순/티커/변동률) 및 검색 필터
 
-### 부스터 실시간 시세(WebSocket) 구독
+### 부스터 실시간 시세(WebSocket) 구독 (HDFSCNT0 실프로토콜 적용)
 
-부스터에 추가한 티커들은 WebSocket을 통해 실시간으로 가격/등락률을 받아 `BoosterScreen` 에 표시합니다. 현재는 한국투자 실제 HDFSCNT0(또는 해외 실시간) 프로토콜 적용 전으로, placeholder JSON 포맷(`{ type:'subscribe', ticker }`)을 사용하고 있으므로 추후 실제 스펙을 치환하면 됩니다.
+부스터에 추가한 티커들은 한국투자 해외 야간 무료시세 TR `HDFSCNT0` WebSocket 을 통해 실시간으로 가격/등락률을 수신합니다. (보안이 적용되지 않은 `ws://` 엔드포인트이므로 배포환경에서는 사내 프록시/터널링 등 보안 고려 필요)
 
-구성 요약:
+엔드포인트
 
-- 훅: `useBoosterPrices()`
-  - 렌더 결과를 반환하지 않고 사이드이펙트만 수행 (소켓 생성/구독 diff 관리)
-  - 승인키(approvalKey) 변경 시 1회 재연결
-  - 부스터 티커 목록 증감(diff) 계산 → subscribe/unsubscribe 메시지 전송
-  - 200ms 이하 동일 티커 다발 업데이트는 throttle (최대 5회/초) 하여 렌더 폭주 방지
-- 시세 스토어: `useBoosterPriceStore`
-  - shape: `prices[ticker] = { last, rate, updatedAt, prevLast? }`
-  - `prevLast` 비교로 가격 변동시 UI 플래시 처리
-- UI: `CurrentPriceItem`
-  - `prevLast !== last` 감지 → 1초간 붉은 border flash 효과
-  - 번개 아이콘으로 실시간 구독 대상(부스터) 토글
-- 화면: `BoosterScreen`
-  - `useBoosterPrices()` 호출로 구독 유지
-  - shallow selector(`useShallow`)로 `prices` 읽어 불필요한 리렌더 최소화
+```
+ws://ops.koreainvestment.com:21000/tryitout/HDFSCNT0
+```
 
-예시 흐름:
+구독/해제 전송 포맷 (JSON)
 
-1. 사용자가 아이템 우측 번개 아이콘 탭 → `booster` 스토어에 티커 추가
-2. 훅이 diff 계산 → 구독 메시지 전송 (소켓 미오픈이면 pending queue 저장 후 onopen 시 처리)
-3. 서버로부터 `{ ticker, last, rate }` 수신 → throttle → `update()` 스토어 반영
-4. 컴포넌트가 `prevLast` 변화 감지 → flash border
-5. 해제 시 unsubscribe 메시지 전송 + 가격 데이터 제거
+헤더 필드 (header object 내부)
+- `approval_key` : `/oauth2/Approval` 로 발급받은 승인키
+- `tr_type` : '1' = 등록, '2' = 해제
+- `custtype` : 'P' (개인) / 'B' (법인)
+- `content-type` : 'utf-8'
 
-재연결 / 예외 처리:
+바디 필드 (body.input)
+- `tr_id` : 'HDFSCNT0'
+- `tr_key` : `D` + 시장구분(3) + 종목코드. 예) `DNASAAPL` (나스닥 AAPL)
 
-- 현재 onclose 시 단순 초기화만 수행 (자동 재시도/백오프 미구현)
-- 향후: 지수적 백오프, 상태 인디케이터(연결/재연결/에러), 에러 프레임 처리 추가 예정
+예) AAPL 구독
 
-TODO:
+```json
+{
+  "header": {
+    "approval_key": "<APPROVAL_KEY>",
+    "tr_type": "1",
+    "custtype": "P",
+    "content-type": "utf-8"
+  },
+  "body": { "input": { "tr_id": "HDFSCNT0", "tr_key": "DNASAAPL" } }
+}
+```
 
-- [ ] 실제 HDFSCNT0 (또는 해외 실시간 채널) 구독/해제 포맷 반영
-- [ ] 재연결 & 백오프 + 자동 재구독
-- [ ] 연결 상태 UI (연결/재연결/에러 배지)
-- [ ] 추가 필드(bid/ask, 체결량, 거래대금 등) 확장
-- [ ] 가격 변동 방향별 색상 플래시 (현재 단일 붉은 border)
+예) AAPL 해제
 
-이 설계로 비즈니스 로직(소켓/구독)과 프레젠테이션(UI)이 분리되어 유지보수가 용이하며, 실제 프로토콜 적용 시 `buildSubscribeMessage`/`buildUnsubscribeMessage` 및 onmessage 파싱 부분만 교체하면 됩니다.
+```json
+{
+  "header": {
+    "approval_key": "<APPROVAL_KEY>",
+    "tr_type": "2",
+    "custtype": "P",
+    "content-type": "utf-8"
+  },
+  "body": { "input": { "tr_id": "HDFSCNT0", "tr_key": "DNASAAPL" } }
+}
+```
+
+응답 (실시간 틱) 은 모든 필드를 문자열로 caret(`^`) 구분하여 전송:
+
+| 순서 | 필드 | 설명 |
+| ---- | ---- | ---- |
+| 1 | RSYM | 실시간종목코드 |
+| 2 | SYMB | 종목코드 |
+| 3 | ZDIV | 소수점자리수 |
+| 4 | TYMD | 현지영업일자(YYYYMMDD) |
+| 5 | XYMD | 현지일자(YYMMDD) |
+| 6 | XHMS | 현지시간(HHMMSS) |
+| 7 | KYMD | 한국일자(YYMMDD) |
+| 8 | KHMS | 한국시간(HHMMSS) |
+| 9 | OPEN | 시가 |
+| 10 | HIGH | 고가 |
+| 11 | LOW | 저가 |
+| 12 | LAST | 현재가 |
+| 13 | SIGN | 대비구분 |
+| 14 | DIFF | 전일대비 |
+| 15 | RATE | 등락율 |
+| 16 | PBID | 매수호가 |
+| 17 | PASK | 매도호가 |
+| 18 | VBID | 매수잔량 |
+| 19 | VASK | 매도잔량 |
+| 20 | EVOL | 체결량 (틱 체결량) |
+| 21 | TVOL | 누적거래량 |
+| 22 | TAMT | 거래대금 |
+| 23 | BIVL | 매도체결량 |
+| 24 | ASVL | 매수체결량 |
+| 25 | STRN | 체결강도 |
+| 26 | MTYP | 시장구분 (1:장중,2:장전,3:장후) |
+
+구독 로직 구현 (`useBoosterPrices`)
+- 승인이 된 후 `approvalKey` 확보 → `useKIWebSocket` 통해 URL + key 사용
+- 소켓 `open` 후 현재 부스터 티커들을 모두 `tr_type=1` 로 재전송 (replay)
+- 티커 diff 계산 후 추가: 구독(1), 제거: 해제(2)
+- 수신 틱 문자열을 caret 분리 → 필요한 `LAST`, `RATE` 추출 → 200ms 스로틀 → 상태 저장
+
+로그 (개발 모드)
+- `[Booster][WS][connect] url ...` : 연결 시도 및 URL
+- `[Booster][SUB] ... payload:` : 개별 구독/해제 전송 JSON 확인
+- `[Booster][WS] tick ...` : 틱 수신 (쓰로틀 통과)
+
+보안/운영 고려
+- 미암호화 ws → 사용자 단말 <-> 사설망 외부 노출 시 TLS 터널(nginx reverse proxy wss) 권장
+- 승인키 노출 방지: 전송 로그는 개발 모드에서만; 빌드(프로덕션)에서는 __DEV__ false 처리
+
+TODO (차기)
+- [ ] 재연결 백오프 (지수 증가 + 최대 한도)
+- [ ] 연결 상태 전역 store + UI 배지(Open / Reconnecting / Error)
+- [ ] 응답 SIGN 해석 및 상승/하락 색상 직접 판별
+- [ ] EVOL/TVOL/TAMT 기반 추가 메트릭(체결강도 재계산 등)
+- [ ] 복수 TR (국내/다른 해외 채널) 확장 구조 추상화
+
+현재 코드에서 프로토콜 교체는 완료되었으며, 새로운 시장/채널 추가 시 `FIELD_KEYS`, payload builder 를 TR 별로 분리하는 유틸 레이어 추출을 고려할 수 있습니다.
 
 ## Design Theme (Toss Invest inspired)
 

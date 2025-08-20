@@ -8,7 +8,6 @@ const HOSTS = {
 const json = (body: unknown) => JSON.stringify(body);
 
 async function http<T>(url: string, init?: RequestInit): Promise<T> {
-  const started = Date.now();
   const res = await fetch(url, {
     ...init,
     headers: {
@@ -16,24 +15,12 @@ async function http<T>(url: string, init?: RequestInit): Promise<T> {
       ...(init?.headers || {}),
     },
   });
-  const dur = Date.now() - started;
+  Date.now(); // previously used for duration logging; retained call to keep timing side-effect minimal
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    if (__DEV__) {
-      console.log('[KI][HTTP][ERROR]', {
-        url,
-        status: res.status,
-        statusText: res.statusText,
-        durMs: dur,
-        body: text.slice(0, 500),
-      });
-    }
     throw new Error(`HTTP ${res.status} ${res.statusText}: ${text}`);
   }
   const jsonBody = (await res.json()) as T;
-  if (__DEV__) {
-    console.log('[KI][HTTP][OK]', { url, status: res.status, durMs: dur });
-  }
   return jsonBody;
 }
 
@@ -52,9 +39,7 @@ export async function issueAccessToken(opts: {
   appkey: string;
   appsecret: string;
 }): Promise<TokenResponse> {
-  console.log('opts.env', opts.env);
   const base = HOSTS[opts.env];
-  console.log('base', base);
   return await http<TokenResponse>(`${base}/oauth2/tokenP`, {
     method: 'POST',
     body: json({
@@ -172,32 +157,9 @@ export async function getOverseasRanking(opts: {
   // Common required placeholders KEYB/AUTH are documented as blank for ranking APIs
   const q = toQuery({ KEYB: '', AUTH: '', ...opts.query });
   const url = `${base}${opts.path}?${q}`;
-  if (__DEV__) {
-    // Avoid logging secrets
-    console.log('[KI][GET]', {
-      env: opts.env,
-      trId: opts.trId,
-      path: opts.path,
-      query: opts.query,
-      url,
-    });
-  }
+  // verbose GET log removed
   const res = await http<RankingResponse>(url, { method: 'GET', headers });
-  if (__DEV__) {
-    console.log('[KI][RES]', {
-      trId: opts.trId,
-      headers: maskHeaders(headers),
-      keys: Object.keys(res || {}),
-      sample: truncateObj(
-        (res as any)?.output2?.[0] || (res as any)?.output?.[0] || (res as any)?.output1?.[0]
-      ),
-      outputTypes: {
-        output: Array.isArray((res as any)?.output) ? 'array' : typeof (res as any)?.output,
-        output1: Array.isArray((res as any)?.output1) ? 'array' : typeof (res as any)?.output1,
-        output2: Array.isArray((res as any)?.output2) ? 'array' : typeof (res as any)?.output2,
-      },
-    });
-  }
+  // verbose response log removed
   return res;
 }
 
@@ -499,37 +461,15 @@ export async function getDailyPrices(params: {
     MODP: params.MODP ?? '0',
   });
   const url = `${base}/uapi/overseas-price/v1/quotations/dailyprice?${q}`;
-  if (__DEV__)
-    console.log('[KI][GET][dailyprice]', { url, q, trId, headers: maskHeaders(headers) });
+  // removed GET dailyprice log
   let res: DailyPriceResponse;
   try {
     res = await http<DailyPriceResponse>(url, { method: 'GET', headers });
   } catch (e: any) {
-    if (__DEV__) console.log('[KI][ERR][dailyprice][http]', e?.message || e);
     throw e;
   }
   const rawRows = (res as any)?.output2 || (res as any)?.output || [];
-  const rowCount = Array.isArray(rawRows) ? rawRows.length : 0;
-  if (__DEV__) {
-    console.log('[KI][RES][dailyprice]', {
-      trId,
-      rowCount,
-      rt_cd: res?.rt_cd,
-      msg_cd: res?.msg_cd,
-      msg1: res?.msg1,
-      keys: Object.keys(res || {}),
-      sample: truncateObj(rawRows?.[0] || res),
-    });
-    if (!rowCount) {
-      console.log('[KI][RES][dailyprice][empty-debug]', {
-        headers: maskHeaders(headers),
-        q,
-        hasOutput1: !!res?.output1,
-        hasOutput2: !!res?.output2,
-        raw: truncateObj(res),
-      });
-    }
-  }
+  // removed dailyprice response verbose logs
   const mapped: DailyPriceRow[] = (Array.isArray(rawRows) ? rawRows : []).map((r: any) => ({
   // 한국투자 해외 일봉 응답 필드 (샘플): xymd, open, high, low, clos, tvol, tamt, diff, rate, sign
   date: r?.xymd || '',
@@ -692,7 +632,7 @@ export async function getOverseasBalance(params: {
   const mergedQuery = { ...defaultQuery, ...extraFiltered } as Record<string, string | undefined>;
   const q = toQuery(mergedQuery);
   const url = `${base}/uapi/overseas-stock/v1/trading/inquire-balance?${q}`;
-  if (__DEV__) console.log('[KI][GET][balance]', { url, mergedQuery });
+  // removed balance GET log
   const res = await http<OverseasBalanceResponse>(url, { method: 'GET', headers });
   if (__DEV__) {
     const rowCount = Array.isArray((res as any)?.output2) ? (res as any).output2.length : 0;
@@ -711,7 +651,7 @@ export async function getOverseasBalance(params: {
     if (!rowCount && !(res as any)?.output1 && !(res as any)?.output2) {
       (msg as any).raw = truncateObj(res);
     }
-    console.log('[KI][RES][balance]', msg);
+  // removed balance response log
   }
   const merged = mergeTradingOutputs(res);
   return { ...res, _merged: merged };
@@ -767,18 +707,12 @@ export async function getOverseasPeriodProfit(params: {
       CTX_AREA_NK200: cursorNk,
     });
     const url = `${base}/uapi/overseas-stock/v1/trading/inquire-period-profit?${q}`;
-    if (__DEV__) console.log('[KI][GET][period-profit]', { page, url, cursorFk, cursorNk });
+  // removed period-profit page GET log
     const res = await http<any>(url, { method: 'GET', headers });
     lastRes = res;
     const rt = (res as any)?.rt_cd;
     if (rt && rt !== '0') {
-      if (__DEV__)
-        console.log('[KI][ERR][period-profit]', {
-          page,
-          rt_cd: rt,
-          msg_cd: (res as any)?.msg_cd,
-          msg1: (res as any)?.msg1,
-        });
+  // keep silent (error will just break loop)
       break; // 에러 시 중단 (원본 응답 그대로 반환)
     }
     if (!summary && (res as any)?.output1 && !Array.isArray((res as any).output1))
@@ -789,12 +723,7 @@ export async function getOverseasPeriodProfit(params: {
         ? (res as any).output1
         : [];
     all.push(...rows);
-    if (__DEV__)
-      console.log('[KI][RES][period-profit][page]', {
-        page,
-        added: rows.length,
-        total: all.length,
-      });
+  // removed per-page result log
     const nextFk = (res as any)?.ctx_area_fk200 || (res as any)?.CTX_AREA_FK200;
     const nextNk = (res as any)?.ctx_area_nk200 || (res as any)?.CTX_AREA_NK200;
     if (!nextFk || !nextNk) break;
@@ -846,17 +775,9 @@ export async function getOverseasExecutions(params: {
   const q = toQuery({ ...defaultQuery, ...(params.extraQuery || {}) });
   // NOTE: 경로는 문서 확인 필요. 임시로 inquire-executions 사용.
   const url = `${base}/uapi/overseas-stock/v1/trading/inquire-executions?${q}`;
-  if (__DEV__) console.log('[KI][GET][executions]', { url, q });
+  // removed executions GET log
   const res = await http<any>(url, { method: 'GET', headers });
-  if (__DEV__) {
-    console.log('[KI][RES][executions]', {
-      headers: maskHeaders(headers),
-      keys: Object.keys(res || {}),
-      summaryKeys: Object.keys((res as any)?.output1 || {}),
-      rowCount: Array.isArray((res as any)?.output2) ? (res as any).output2.length : 0,
-      sample: truncateObj((res as any)?.output2?.[0] || (res as any)?.output1),
-    });
-  }
+  // removed executions response log
   const merged = mergeTradingOutputs(res);
   return { ...res, _merged: merged };
 }

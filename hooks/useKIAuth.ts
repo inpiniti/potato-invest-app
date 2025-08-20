@@ -10,9 +10,7 @@ export function useKIAuth() {
 
   const login = async () => {
     if (!appKey || !secretKey) throw new Error('App Key/Secret Key가 필요합니다.');
-    console.log('login');
     const token = await issueAccessToken({ env, appkey: appKey, appsecret: secretKey });
-    console.log('token', token);
     const now = Date.now();
     const expiresMs = (token.expires_in ?? 0) * 1000;
     const tokenExpiresAt = expiresMs ? now + expiresMs : null;

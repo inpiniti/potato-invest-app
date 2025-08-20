@@ -35,9 +35,7 @@ export function useDailyPrices(ticker?: string, exchange: string = 'NAS') {
           MODP: '0',
           count: 90,
         });
-        if (__DEV__ && fallback.length) {
-          console.log('[KI][dailyprice][fallback-hit]', { ticker, used: 'NASD' });
-        }
+  // silent fallback
         return fallback;
       }
       return primary;

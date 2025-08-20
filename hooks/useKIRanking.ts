@@ -33,17 +33,7 @@ function mergeOutputs(res?: RankingResponse) {
   else if (output != null) rows = toArray(output);
   else if (output1 != null) rows = toArray(output1);
 
-  if (__DEV__ && !Array.isArray(output2)) {
-    console.log('[KI][mergeOutputs] output2 not array, using fallback', {
-      keys: Object.keys(res || {}),
-      types: {
-        output2: typeof output2,
-        output: typeof output,
-        output1: typeof output1,
-      },
-      length: Array.isArray(rows) ? rows.length : 0,
-    });
-  }
+  // fallback without verbose logging
   return rows as any[];
 }
 
@@ -107,9 +97,7 @@ function normalizeRows(rows: any[]): NormalizedRow[] {
       raw: r,
     };
   });
-  if (__DEV__) {
-    console.log('[KI][normalizeRows] len', mapped.length);
-  }
+  // removed length debug log
   return mapped;
 }
 

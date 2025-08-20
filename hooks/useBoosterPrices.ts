@@ -1,206 +1,189 @@
-import { useEffect, useRef, useMemo } from 'react';
+// 단순화 + 기존 컴포넌트 호환 (useBoosterPriceStore 재도입)
 import { useBoosterStore } from '../stores/booster';
 import { useAuthStore } from '../stores/auth';
-import { useKIWebSocket } from './useKIWebSocket';
+import { useState, useEffect, useRef } from 'react';
 import { create } from 'zustand';
 
-// HDFSCNT0 실시간 해외지수/종목 (예시) 필드 목록 (caret ^ 구분)
 const FIELD_KEYS = [
-  'RSYM','SYMB','ZDIV','TYMD','XYMD','XHMS','KYMD','KHMS','OPEN','HIGH','LOW','LAST','SIGN','DIFF','RATE','PBID','PASK','VBID','VASK','EVOL','TVOL','TAMT','BIVL','ASVL','STRN','MTYP'
+  'RSYM',
+  'SYMB',
+  'ZDIV',
+  'TYMD',
+  'XYMD',
+  'XHMS',
+  'KYMD',
+  'KHMS',
+  'OPEN',
+  'HIGH',
+  'LOW',
+  'LAST',
+  'SIGN',
+  'DIFF',
+  'RATE',
+  'PBID',
+  'PASK',
+  'VBID',
+  'VASK',
+  'EVOL',
+  'TVOL',
+  'TAMT',
+  'BIVL',
+  'ASVL',
+  'STRN',
+  'MTYP',
 ];
 
-// Debug 플래그 (필요 시 false 로 변경)
-const DBG = true;
-
-type BoosterTick = {
+export type BoosterTick = {
   last: number;
   rate: number;
   updatedAt: number;
   prevLast?: number;
-  raw?: Record<string,string>; // 원문 필요 시
+  raw?: Record<string, string>;
 };
 
 type BoosterPriceState = {
   prices: Record<string, BoosterTick>;
-  update: (ticker: string, data: BoosterTick) => void;
-  bulkRemove: (tickers: string[]) => void;
-  clearAll: () => void;
+  update: (ticker: string, last: number, rate: number, raw: Record<string, string>) => void;
+  clear: () => void;
 };
 
 export const useBoosterPriceStore = create<BoosterPriceState>((set) => ({
   prices: {},
-  update: (ticker, data) => set((s) => {
-    const cur = s.prices[ticker];
-    const changed = !cur || cur.last !== data.last || cur.rate !== data.rate;
-    if (!changed) return s; // 값 동일 시 불필요 업데이트 차단
-  if (DBG) console.log('[RT] store update', ticker, 'last', data.last, 'rate', data.rate);
-    return {
-      prices: {
-        ...s.prices,
-        [ticker]: {
-          last: data.last,
-            rate: data.rate,
+  update: (ticker, last, rate, raw) =>
+    set((s) => {
+      const cur = s.prices[ticker];
+      if (cur && cur.last === last && cur.rate === rate) return s;
+      return {
+        prices: {
+          ...s.prices,
+          [ticker]: {
+            last,
+            rate,
             updatedAt: Date.now(),
-            prevLast: cur ? (cur.last !== data.last ? cur.last : cur.prevLast) : undefined,
-            raw: data.raw,
-        }
-      }
-    };
-  }),
-  bulkRemove: (tickers) => set((s) => {
-    if (!tickers.length) return s;
-    const clone = { ...s.prices };
-    tickers.forEach(t => delete clone[t]);
-    return { prices: clone };
-  }),
-  clearAll: () => set({ prices: {} })
+            prevLast: cur ? (cur.last !== last ? cur.last : cur.prevLast) : undefined,
+            raw,
+          },
+        },
+      };
+    }),
+  clear: () => set({ prices: {} }),
 }));
 
-// 구독/해제 메시지 (실제 프로토콜 적용 시 교체). tr_type: 1=등록, 2=해제
-function buildHDFSCNT0Message(approvalKey: string, tr_key: string, tr_type: '1'|'2') {
-  return JSON.stringify({
-    header: {
-      approval_key: approvalKey,
-      custtype: 'P',
-      tr_type,
-      'content-type': 'utf-8'
-    },
-    body: { input: { tr_id: 'HDFSCNT0', tr_key } }
-  });
+export type RealTimeRecord = Record<string, Record<string, string>>;
+
+function extractTicker(sym: string) {
+  return sym?.startsWith('DNAS') ? sym.slice(4) : sym;
 }
 
-// caret 구분 문자열 → 레코드 파싱
-function parseCaretMessage(raw: string): Record<string,string> | null {
-  if (!raw.includes('^')) return null;
-  const parts = raw.split('^');
-  const rec: Record<string,string> = {};
-  FIELD_KEYS.forEach((k,i) => { rec[k] = parts[i] || ''; });
-  return rec;
-}
-
-// ticker 변환: 서버 tr_key 가 DNAS + SYMBOL 형태라면 역으로 제거
-function extractTicker(symbolish: string) {
-  return symbolish?.startsWith('DNAS') ? symbolish.slice(4) : symbolish;
-}
-
-export function useBoosterPrices() {
-  const items = useBoosterStore(s => s.items); // raw items
-  // tickers 배열 안정화: 정렬 + 메모이제이션 (순서변경 없이 추가/삭제 감지 용도)
-  const tickers = useMemo(() => {
-    return items.map(i => i.ticker);
-  }, [items]);
-  const tickersKey = useMemo(() => tickers.join('|'), [tickers]);
+// 사용: const { data } = useBoosterPrices();  (symbols 미전달 시 booster store items 기준)
+export function useBoosterPrices(symbols?: string[]) {
+  const [data, setData] = useState<RealTimeRecord>({});
+  const socketRef = useRef<WebSocket | null>(null);
+  const prevSymbolsRef = useRef<string[]>([]);
   const { tokens } = useAuthStore();
-  const { getConnectionInfo } = useKIWebSocket();
+  const approvalKey = tokens.approvalKey;
+  const boosterItems = useBoosterStore((s) => s.items);
+  const activeSymbols = symbols && symbols.length ? symbols : boosterItems.map((i) => i.ticker);
+  const updateStore = useBoosterPriceStore((s) => s.update);
 
-  const wsRef = useRef<WebSocket | null>(null);
-  const openedRef = useRef(false);
-  const prevTickersRef = useRef<string[]>([]);
-  const pendingRef = useRef<string[]>([]); // 소켓 오픈 전 대기 구독
-  const approvalKeyRef = useRef<string | null>(null);
-  const updateFnRef = useRef(useBoosterPriceStore.getState().update);
-  const bulkRemoveRef = useRef(useBoosterPriceStore.getState().bulkRemove);
-  const lastEmitRef = useRef<Record<string, number>>({});
-
-  // 최신 actions ref 동기화 (참조 안정화)
+  // 최초 연결 (approvalKey 변하면 재연결)
   useEffect(() => {
-    updateFnRef.current = useBoosterPriceStore.getState().update;
-    bulkRemoveRef.current = useBoosterPriceStore.getState().bulkRemove;
-  if (DBG) console.log('[RT] sync action refs');
-  });
-
-  // 소켓 생성/해제 (approvalKey 변경 시 재연결)
-  useEffect(() => {
-    const approvalKey = tokens.approvalKey;
-    if (!approvalKey) return; // 로그인 전
-    // 이미 동일 키로 열려있으면 skip
-    if (wsRef.current && approvalKeyRef.current === approvalKey) return;
-  if (DBG) console.log('[RT] (re)connect websocket, approvalKey:', approvalKey);
-    // 기존 소켓 정리
-    if (wsRef.current) {
-      try { wsRef.current.close(); } catch {}
-      wsRef.current = null;
-      openedRef.current = false;
-      pendingRef.current = [];
+    if (!approvalKey) return;
+    let socket: WebSocket | null = null;
+    try {
+      socket = new WebSocket('ws://ops.koreainvestment.com:21000');
+    } catch (e) {
+      if (__DEV__) console.warn('[Booster][WS][create-fail]', e);
+      return () => {};
     }
-    approvalKeyRef.current = approvalKey;
-    const { url } = getConnectionInfo();
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
+    socketRef.current = socket;
+    if (__DEV__) console.log('[Booster][WS][connecting]');
 
-    ws.onopen = () => {
-      openedRef.current = true;
-      if (DBG) console.log('[RT] socket open, resubscribe all tickers', tickers);
-      // 기존 티커 모두 재구독
-      prevTickersRef.current = [];
-      tickers.forEach(t => pendingRef.current.push(t));
-      // pending 처리
-      const key = approvalKeyRef.current!;
-      pendingRef.current.forEach(t => {
-        try { ws.send(buildHDFSCNT0Message(key, `DNAS${t}`, '1')); if (DBG) console.log('[RT] SUB(open)', t); } catch {}
+    socket.onopen = () => {
+      if (__DEV__) console.log('[Booster][WS][open]');
+      if (!activeSymbols.length) return;
+      activeSymbols.forEach((sym) => {
+        const msg = {
+          header: {
+            approval_key: approvalKey,
+            tr_type: '1',
+            custtype: 'P',
+            'content-type': 'utf-8',
+          },
+          body: { input: { tr_id: 'HDFSCNT0', tr_key: `DNAS${sym}` } },
+        };
+        try {
+          socket!.send(JSON.stringify(msg));
+          if (__DEV__) console.log('[Booster][SUB][init]', sym);
+        } catch (e) {
+          console.log('[Booster][WS][send-fail]', e);
+        }
       });
-      pendingRef.current = [];
+      prevSymbolsRef.current = activeSymbols.slice();
     };
 
-    ws.onmessage = (ev) => {
-      const raw = ev.data;
-      if (typeof raw !== 'string') return;
-      const rec = parseCaretMessage(raw);
-      if (!rec) return; // JSON 체계 등은 무시
-      const sym = rec['SYMB'] || rec['RSYM'];
+    socket.onmessage = (event) => {
+      console.log('[Booster][WS][message]', event.data);
+      const raw = event.data;
+      if (typeof raw !== 'string' || !raw.includes('^')) return;
+      const parts = raw.split('^');
+      const parsed: Record<string, string> = {};
+      FIELD_KEYS.forEach((k, i) => {
+        parsed[k] = parts[i] || '';
+      });
+      const sym = parsed['SYMB'] || parsed['RSYM'];
       if (!sym) return;
       const ticker = extractTicker(sym);
-      // 필드 추출
-      const lastStr = rec['LAST'];
-      const rateStr = rec['RATE'];
-      const last = Number(lastStr) || 0;
-      const rate = Number(rateStr) || 0;
-      // 티커별 스로틀 (200ms)
-      const now = Date.now();
-      const lastEmit = lastEmitRef.current[ticker] || 0;
-      if (now - lastEmit < 200) return;
-      lastEmitRef.current[ticker] = now;
-  if (DBG) console.log('[RT] recv', ticker, 'last', last, 'rate', rate);
-      updateFnRef.current(ticker, { last, rate, updatedAt: now, raw: rec });
+      setData((prev: RealTimeRecord) => ({ ...prev, [ticker]: parsed }));
+      const last = Number(parsed['LAST']) || 0;
+      const rate = Number(parsed['RATE']) || 0;
+      updateStore(ticker, last, rate, parsed);
     };
 
-    ws.onclose = () => {
-      openedRef.current = false;
-      wsRef.current = null;
+    socket.onerror = (err) => {
+      if (__DEV__) console.warn('[Booster][WS][error]', err);
     };
-    ws.onerror = () => {};
-
+    socket.onclose = () => {
+      if (__DEV__) console.log('[Booster][WS][close]');
+    };
     return () => {
-      try { ws.close(); } catch {}
+      try {
+        socket?.close();
+      } catch {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tokens.approvalKey]);
+  }, [approvalKey]);
 
-  // 구독 diff (tickers 변경 시에만 수행) — store 가격 업데이트와 독립
+  // 심볼 diff 처리
   useEffect(() => {
-    if (!openedRef.current || !approvalKeyRef.current) return;
-    const ws = wsRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    const prev = prevTickersRef.current;
-    const cur = tickers;
-    const added = cur.filter(t => !prev.includes(t));
-    const removed = prev.filter(t => !cur.includes(t));
-  if (DBG && (added.length || removed.length)) console.log('[RT] diff added', added, 'removed', removed);
-    const key = approvalKeyRef.current;
-    if (added.length) {
-      added.forEach(t => {
-    try { ws.send(buildHDFSCNT0Message(key!, `DNAS${t}`, '1')); if (DBG) console.log('[RT] SUB(diff)', t); } catch {}
-      });
-    }
-    if (removed.length) {
-      removed.forEach(t => {
-    try { ws.send(buildHDFSCNT0Message(key!, `DNAS${t}`, '2')); if (DBG) console.log('[RT] UNSUB(diff)', t); } catch {}
-      });
-      // 가격 스토어도 제거
-      bulkRemoveRef.current(removed);
-    }
-    prevTickersRef.current = cur;
-  }, [tickersKey, tickers]);
+    const socket = socketRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    if (!approvalKey) return;
+    const prev = prevSymbolsRef.current;
+    const added = activeSymbols.filter((s: string) => !prev.includes(s));
+    const removed = prev.filter((s: string) => !activeSymbols.includes(s));
+    if (!added.length && !removed.length) return;
+    const send = (tr_key: string, tr_type: '1' | '2') => {
+      const msg = {
+        header: { approval_key: approvalKey, tr_type, custtype: 'P', 'content-type': 'utf-8' },
+        body: { input: { tr_id: 'HDFSCNT0', tr_key } },
+      };
+      try {
+        socket.send(JSON.stringify(msg));
+      } catch {}
+    };
+    added.forEach((sym: string) => {
+      send(`DNAS${sym}`, '1');
+      if (__DEV__) console.log('[Booster][SUB][add]', sym);
+    });
+    removed.forEach((sym: string) => {
+      send(`DNAS${sym}`, '2');
+      if (__DEV__) console.log('[Booster][SUB][remove]', sym);
+    });
+    prevSymbolsRef.current = activeSymbols.slice();
+  }, [activeSymbols, approvalKey]);
 
-  // 반환 없음 (사이드이펙트 훅)
+  return { data };
 }
+
+export default useBoosterPrices;
